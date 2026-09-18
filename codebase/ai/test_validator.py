@@ -44,6 +44,14 @@ CASES = [
     ("2 lựa chọn trùng nhau", lambda q: q["options"].__setitem__(3, "học từ  dữ liệu"), "trùng"),
     ("answer ngoài 0-3", lambda q: q.update(answer=4), "answer"),
     ("Thiếu trường", lambda q: q.pop("evidence_quote"), "thiếu trường"),
+    ("Lựa chọn có tiền tố 'A.' (case G04)", lambda q: q.update(options=["A. Học từ dữ liệu", "B. Viết luật bằng tay", "C. Luôn dùng mạng nơ-ron", "D. Chỉ xử lý văn bản"]), "tiền tố"),
+    ("Lựa chọn 'Cả A và B' (case G04)", lambda q: q["options"].__setitem__(3, "Cả A và B"), "lựa chọn gộp"),
+    ("Lựa chọn 'Cả ba đều không liên quan'", lambda q: q["options"].__setitem__(3, "Cả ba đều không liên quan"), "lựa chọn gộp"),
+    ("Lựa chọn 'Tất cả các đáp án trên'", lambda q: q["options"].__setitem__(3, "Tất cả các đáp án trên"), "lựa chọn gộp"),
+    ("Không báo nhầm: lựa chọn bắt đầu bằng 'Cả' bình thường", lambda q: q["options"].__setitem__(3, "Cảm biến thu dữ liệu ảnh"), None),
+    ("Không báo nhầm: 'X và Y đều không…' là nội dung thật", lambda q: q["options"].__setitem__(3, "Cả temperature và top_p đều không ảnh hưởng đến cách chọn từ."), None),
+    ("Lựa chọn 'Tất cả đều đúng.'", lambda q: q["options"].__setitem__(3, "Tất cả đều đúng."), "lựa chọn gộp"),
+    ("Không báo nhầm: chữ 'A' đầu câu không phải tiền tố", lambda q: q["options"].__setitem__(3, "AI chỉ xử lý văn bản"), None),
 ]
 
 if __name__ == "__main__":

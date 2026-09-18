@@ -10,6 +10,18 @@ REQUIRED = ["concept_id", "level", "page", "evidence_quote", "question", "option
 MIN_QUOTE_CHARS = 20   # câu trích quá ngắn thì "khớp" không chứng minh được gì
 MIN_LEAK_CHARS = 6     # đáp án ngắn hơn (vd "LLM") dễ trùng tình cờ trong đề, không coi là lộ
 
+# Lựa chọn có tiền tố "A." / "B)" / "(C)": web tự đánh chữ cái, và khi đổi thứ tự thì nhãn sai
+LETTER_PREFIX = re.compile(r"^\s*\(?[a-d]\s*[\.\):]\s+", re.I)
+# Lựa chọn "gộp" kiểu "Cả A và B", "Tất cả đều đúng", "Không có đáp án nào": dễ tạo 2 đáp án đúng
+# và phụ thuộc thứ tự lựa chọn. Phát hiện 18/9 ở case G04 (answer key chấm oan học viên).
+META_OPTION = re.compile(
+    r"^(cả|tất cả)\s+(a|b|c|d|hai|ba|bốn|các|những)\b"
+    r"|\bđều\s+(đúng|sai)\s*\.?$"   # "Tất cả đều đúng." — không bắt "X và Y đều không ảnh hưởng…" (báo nhầm 18/9)
+    r"|^không\s+(có\s+)?(đáp án|phương án|lựa chọn|ý)\s+nào"
+    r"|\b(các|những)\s+(đáp án|phương án|lựa chọn|ý)\s+(trên|còn lại)\b",
+    re.I,
+)
+
 
 def normalize(text: str) -> str:
     """Chuẩn hoá để so khớp: bỏ khác biệt về xuống dòng, khoảng trắng, hoa/thường, kiểu dấu ngoặc."""
@@ -55,6 +67,12 @@ def validate(q: dict, *, concept: dict, level: int, pages: dict) -> list[str]:
         errors.append("options phải là 4 lựa chọn không rỗng")
     elif len({normalize(o) for o in opts}) != 4:
         errors.append("có 2 lựa chọn trùng nhau")
+    else:
+        if any(LETTER_PREFIX.match(o) for o in opts):
+            errors.append("lựa chọn không được có tiền tố A./B./C./D.")
+        meta = [o for o in opts if META_OPTION.search(normalize(o))]
+        if meta:
+            errors.append(f"không dùng lựa chọn gộp kiểu 'Cả A và B', 'Tất cả đều đúng', 'Không có đáp án nào': {meta}")
     if not isinstance(q["answer"], int) or not 0 <= q["answer"] <= 3:
         errors.append("answer phải là số 0-3")
     if not str(q["question"]).strip():

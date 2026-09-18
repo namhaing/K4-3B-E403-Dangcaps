@@ -157,6 +157,15 @@ Trong lúc chờ nhau, mỗi tầng dùng **stub trả JSON cố định**:
   - `answer` phải có trong `options`
   - đáp án không được xuất hiện trong đề
   - fail → sinh lại 1 lần → fail tiếp thì trả `no_evidence`
+- [x] **Vòng sửa đầu tiên (chạy thử, chưa phải run-1)** *(18/9)* — ghi vào spec §9 Changelog:
+  - Duy: tách chiều "lộ đáp án" (đề chứa nguyên văn đáp án) và chiều mới "chép cụm câu trích" (≥4 tiếng liên tiếp). Lý do: case L4-03 đề hỏi "khái niệm nào là 'chiếc ô lớn nhất'" mà bộ đo cũ chấm ✅. Golden thêm cột `kiem_them`.
+  - Nam: thêm luật 9 (không chép cụm câu trích) + luật 10 (đã hỏi thì dùng ý khác) vào prompt.
+  - Kết quả 2 lần × 4 case: vẫn **3/8 câu chép cụm** ("hệ thống có yếu tố thông minh") → prompt mới chỉ đỡ một phần.
+  - ⚠️ **Phát hiện nặng hơn:** G04 lần 1 hỏi "khái niệm nào **không thuộc** nhóm AI phân loại?" → cả Generative AI và Agentic AI đều đúng, answer key chỉ chọn 1 → **2 đáp án đúng** (lỗi answer key, chấm tay mới thấy). Lựa chọn còn có tiền tố "A./B./C." và "Cả A và B".
+- [x] **Thêm vào validator** *(18/9)*: cấm tiền tố "A./B./C./D." và lựa chọn gộp ("Cả A và B", "Cả ba…", "Tất cả các đáp án trên", "Tất cả đều đúng", "Không có đáp án nào"); lỗi in kèm lựa chọn bị bắt. Prompt luật 4 thêm: không tiền tố, không lựa chọn gộp, tránh câu phủ định. **19/19 test** (`test_validator`).
+  - Lần đầu luật "đều … không" **báo nhầm** câu hợp lệ "Cả temperature và top_p đều không ảnh hưởng…" (prompt_params bị `no_evidence` 2 lần) → thu hẹp chỉ bắt "đều đúng/sai" ở cuối câu, thêm test chống báo nhầm.
+  - Chạy lại `try_generate --all --level 2`: **12/12 qua validator**, 11/12 qua ngay lần đầu.
+  - Ghi §9 Changelog: validator thêm kiểm lựa chọn gộp — lý do case G04 (2 đáp án đúng).
 - [ ] **Giao hàm chạy thật cho D trước 14:00.** *(hàm đã chạy AI thật, chờ push + Duy nối vào API)*
 - [ ] 15:00 chạy `run_eval.py` lượt 1. **Đọc từng case fail** và viết `eval/run-1.md`: bảng %, danh sách fail, nguyên nhân dự đoán. Giữ nguyên số thật, kể cả khi số xấu.
 - [ ] 15:30 quay video 30 giây cùng C. **Nộp CP3.**
