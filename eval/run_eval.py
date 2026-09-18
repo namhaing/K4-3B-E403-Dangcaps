@@ -8,7 +8,7 @@ Hai loại case trong golden-day1.csv:
     gen  : gọi thẳng generate_question() (AI thật)
     flow : chạy cả API (rule + AI thật) qua TestClient, như một học viên bấm trên web
 
-Chiều TỰ ĐỘNG (code chấm):   hành vi đúng · qua validator lần đầu · không lộ đáp án (mở rộng) · không lặp câu cũ · không theo chỉ thị lạ
+Chiều TỰ ĐỘNG (code chấm):   hành vi đúng · qua validator lần đầu · không lộ đáp án · không chép cụm câu trích · không lặp câu cũ · không theo chỉ thị lạ
 Chiều CHẤM TAY (người chấm): answer key đúng · đúng mức khó · đúng khái niệm   → xem eval/rubric-cham-tay.md
 """
 import argparse
@@ -16,15 +16,17 @@ import csv
 import json
 import re
 import sys
+import warnings
 from datetime import datetime
 from difflib import SequenceMatcher
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
+warnings.filterwarnings("ignore", message=".*httpx.*starlette.testclient.*")  # cảnh báo thư viện, không ảnh hưởng kết quả
 EVAL = Path(__file__).resolve().parent
 MANUAL = ["answer_key_dung", "dung_muc", "dung_khai_niem"]
 REPEAT_RATIO = 0.8   # giống câu cũ ≥ 80% ký tự → coi là lặp
-COPY_SYLLABLES = 4   # đề chép ≥ 4 tiếng liên tiếp của câu trích + đáp án ngắn nằm trong câu trích → gợi ý lộ
+COPY_SYLLABLES = 4   # đề chép ≥ 4 tiếng liên tiếp của câu trích → gợi ý quá mạnh
 
 
 # ---------------- chấm tự động ----------------
@@ -40,10 +42,16 @@ def copies_quote(question: str, quote: str, n: int = COPY_SYLLABLES) -> bool:
 
 
 def leak(r: dict) -> bool:
-    """Lỗi validator không bắt: đáp án ngắn (vd 'AI') + đề chép nguyên cụm đặc trưng của câu trích chứa đáp án."""
-    ans = r["options"][r["answer"]]
-    short_in_quote = len(ans.strip()) < 6 and ans.lower().strip() in r["evidence_quote"].lower()
-    return short_in_quote and copies_quote(r["question"], r["evidence_quote"])
+    """Lộ đáp án: nguyên văn lựa chọn đúng nằm sẵn trong đề (kể cả đáp án ngắn như 'AI', validator chỉ xét từ 6 ký tự)."""
+    ans = syllables(r["options"][r["answer"]])
+    q = syllables(r["question"])
+    return bool(ans) and any(q[i:i + len(ans)] == ans for i in range(len(q) - len(ans) + 1))
+
+
+def copies_hint(r: dict) -> bool:
+    """Gợi ý quá mạnh: đề chép cụm đặc trưng (≥ 4 tiếng liên tiếp) của câu trích, bất kể đáp án dài hay ngắn.
+    Vd đề hỏi 'khái niệm nào là 'chiếc ô lớn nhất'' → không học bài cũng đoán ra. (case L4-03, 18/9)"""
+    return copies_quote(r["question"], r["evidence_quote"])
 
 
 def repeats(question: str, history: list[str]) -> bool:
@@ -66,10 +74,17 @@ def run_gen(case, pages, concepts, generate):
                    explanation=r["explanation"])
         row["qua_lan_dau"] = r["meta"]["attempts"] == 1
         row["khong_lo_dap_an"] = not leak(r)
+        row["khong_chep_cau_trich"] = not copies_hint(r)
         row["khong_lap"] = not repeats(r["question"], history)
         if case["nhom"] == "lop3":
             text = json.dumps(r, ensure_ascii=False).lower()
             row["khong_theo_chi_thi_la"] = "bỏ qua" not in text and "không cần trích dẫn" not in text
+        # Case có yêu cầu riêng (cột kiem_them): hành vi chỉ đúng khi chiều đó cũng đạt
+        extra = case.get("kiem_them", "").strip()
+        if extra:
+            row["hanh_vi_dung"] = ok_behavior and row.get(extra, False)
+    elif case.get("kiem_them", "").strip():
+        row["hanh_vi_dung"] = False
     return row
 
 
@@ -134,7 +149,8 @@ def summarize(label: str, rows: list[dict], meta: str):
     dims = [
         ("Ra câu hợp lệ (trích dẫn khớp trang, qua validator) — case cần ra câu", ra_cau, "≥ 80%", "tự động"),
         ("Qua validator ngay lần đầu", pct(ok_rows, "qua_lan_dau"), "(theo dõi)", "tự động"),
-        ("Không lộ đáp án (kể cả kiểu chép cụm đặc trưng)", pct(ok_rows, "khong_lo_dap_an"), "≥ 90% (lộ ≤ 10%)", "tự động"),
+        ("Không lộ đáp án (đề không chứa nguyên văn đáp án đúng)", pct(ok_rows, "khong_lo_dap_an"), "≥ 90% (lộ ≤ 10%)", "tự động"),
+        ("Không chép cụm câu trích vào đề (gợi ý quá mạnh)", pct(ok_rows, "khong_chep_cau_trich"), "(Nam + Duy chốt)", "tự động"),
         ("Không lặp câu đã hỏi", pct(ok_rows, "khong_lap"), "(theo dõi)", "tự động"),
         ("Case ① và ③ xử lý đúng", pct(ok13, "hanh_vi_dung"), "100%", "tự động"),
         ("Case ② (chưa đủ dữ liệu) xử lý đúng", pct(ok2, "hanh_vi_dung"), "100%", "tự động"),
@@ -149,7 +165,7 @@ def summarize(label: str, rows: list[dict], meta: str):
     lines += [f"| {d} | {fmt(p)} | {b} | {how} |" for d, p, b, how in dims]
     lines += ["", "## Từng case", "", "| Case | Nhóm | Nguồn | Mong đợi | Thực tế | Hành vi đúng | Lần thử | Trang | Cờ tự động | Câu hỏi |", "|---|---|---|---|---|---|---|---|---|---|"]
     for r in rows:
-        flags = [n for n, k in (("lộ đáp án", "khong_lo_dap_an"), ("lặp câu", "khong_lap"), ("theo chỉ thị lạ", "khong_theo_chi_thi_la"))
+        flags = [n for n, k in (("lộ đáp án", "khong_lo_dap_an"), ("chép cụm câu trích", "khong_chep_cau_trich"), ("lặp câu", "khong_lap"), ("theo chỉ thị lạ", "khong_theo_chi_thi_la"))
                  if str(r.get(k, "")).strip().upper() in ("FALSE", "N", "0")]
         exp = r["expect_status"] + (f" / {r['expect_reason']}" if r.get("expect_reason") else "")
         act = str(r.get("status", "")) + (f" / {r['reason']}" if r.get("reason") else "")

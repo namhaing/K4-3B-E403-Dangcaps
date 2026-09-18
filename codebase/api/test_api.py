@@ -5,6 +5,7 @@
 Test này kiểm LUỒNG và RULE. Chất lượng câu hỏi AI thật được đo ở eval/run_eval.py.
 """
 import sys
+import warnings
 
 from fastapi.testclient import TestClient
 
@@ -12,6 +13,7 @@ from . import rules
 from .app import create_app
 
 sys.stdout.reconfigure(encoding="utf-8")
+warnings.filterwarnings("ignore", message=".*httpx.*starlette.testclient.*")  # cảnh báo thư viện, không ảnh hưởng kết quả
 
 CONCEPTS = {
     "lecture": "D01",
