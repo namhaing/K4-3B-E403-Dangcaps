@@ -1,0 +1,56 @@
+"""Rule của lượt luyện — code thuần, KHÔNG dùng AI.
+
+Tách riêng khỏi app.py để test được mà không cần server hay API key,
+và để nói rõ với giám khảo: phần này là rule, AI chỉ nằm ở generate_question().
+"""
+TOTAL = 5            # số câu tính điểm trong một lượt
+START_LEVEL = 2
+MIN_ANSWERS = 3      # dưới số này thì "chưa đủ dữ liệu để đánh giá"
+FAST_MS = 3000       # trả lời nhanh hơn ngưỡng này bị coi là có dấu hiệu đoán mò
+MAX_FAST = 3         # từ 3 câu "quá nhanh" trở lên thì không kết luận
+
+
+def next_level(level: int, correct: bool) -> int:
+    """Đúng → khó hơn 1 mức, sai → dễ hơn 1 mức, luôn trong 1–3."""
+    return max(1, min(3, level + (1 if correct else -1)))
+
+
+def pick_concept(order: list[str], answered: list[dict], excluded: set[str]) -> str | None:
+    """
+    order    : thứ tự khái niệm trong concepts.json
+    answered : các câu đã trả lời, mỗi câu có concept_id, correct
+    excluded : khái niệm đã thử mà AI không ra được câu có căn cứ
+
+    Vừa sai → giữ khái niệm đó để luyện tiếp (mức đã giảm).
+    Vừa đúng / chưa có câu → khái niệm đầu tiên chưa hỏi.
+    Hỏi hết rồi → khái niệm sai nhiều nhất.
+    """
+    usable = [c for c in order if c not in excluded]
+    if not usable:
+        return None
+    if answered and not answered[-1]["correct"] and answered[-1]["concept_id"] in usable:
+        return answered[-1]["concept_id"]
+    asked = {a["concept_id"] for a in answered}
+    for c in usable:
+        if c not in asked:
+            return c
+    wrong = {c: sum(1 for a in answered if a["concept_id"] == c and not a["correct"]) for c in usable}
+    return max(usable, key=lambda c: wrong[c])
+
+
+def is_low_confidence(answered: list[dict]) -> bool:
+    """HAX G10: chưa đủ tín hiệu thì không kết luận học viên yếu phần nào."""
+    fast = sum(1 for a in answered if a.get("answer_ms") is not None and a["answer_ms"] < FAST_MS)
+    return len(answered) < MIN_ANSWERS or fast >= MAX_FAST
+
+
+def review_target(answered: list[dict]) -> dict | None:
+    """Chủ đề cần ôn = khái niệm sai nhiều nhất (bằng nhau thì lấy khái niệm sai gần nhất). Không sai câu nào → None."""
+    wrong = [a for a in answered if not a["correct"]]
+    if not wrong:
+        return None
+    counts = {}
+    for a in wrong:
+        counts[a["concept_id"]] = counts.get(a["concept_id"], 0) + 1
+    top = max(counts.values())
+    return next(a for a in reversed(wrong) if counts[a["concept_id"]] == top)

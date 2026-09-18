@@ -1,0 +1,24 @@
+{
+  "_note": "BẢN NHÁP do A tạo để test generate_question(). C (Hiền) rà lại tên, số trang, mô tả mức rồi chốt. Số trang theo slide d1-slide-hackathon.pdf.",
+  "lecture": "D01",
+  "lecture_title": "Day 1 — AI & LLM Foundation",
+  "level_guide": {
+    "1": "Nhận biết: hỏi định nghĩa hoặc sự kiện được nêu thẳng trên slide.",
+    "2": "Phân biệt: so sánh 2 khái niệm gần nhau, hoặc chọn phát biểu đúng/sai về khái niệm.",
+    "3": "Áp dụng: đưa một tình huống thực tế mới, học viên phải dùng khái niệm để chọn cách hiểu hoặc cách làm đúng."
+  },
+  "concepts": [
+    {"concept_id": "ai_layers", "name": "Các tầng AI ⊃ ML ⊃ Deep Learning ⊃ GenAI ⊃ LLM", "pages": [3]},
+    {"concept_id": "ai_types", "name": "Discriminative AI · Generative AI · Agentic AI", "pages": [4]},
+    {"concept_id": "ai_history", "name": "Các cột mốc lịch sử AI: hệ chuyên gia, ImageNet, Transformer, ChatGPT", "pages": [5, 6, 7, 8, 9]},
+    {"concept_id": "llm_definition", "name": "LLM là gì: mô hình nền đoán mảnh chữ tiếp theo", "pages": [10, 11, 12]},
+    {"concept_id": "token_context", "name": "Token và context (bàn làm việc có hạn)", "pages": [13, 14, 16]},
+    {"concept_id": "attention", "name": "Transformer và cơ chế attention", "pages": [8, 15]},
+    {"concept_id": "llm_training", "name": "Quy trình tạo LLM: pre-training, SFT, RLHF, luyện suy luận", "pages": [18, 19]},
+    {"concept_id": "llm_limits", "name": "Giới hạn của LLM: knowledge cutoff, hallucination, học đường tắt", "pages": [20, 21]},
+    {"concept_id": "chain_of_thought", "name": "Chain-of-Thought: cho model giấy nháp", "pages": [22]},
+    {"concept_id": "agent", "name": "Từ LLM đến agent: 4 mức và 5 bộ phận", "pages": [23, 24]},
+    {"concept_id": "model_cost", "name": "Chọn model theo tầng và chi phí token", "pages": [25, 26, 27]},
+    {"concept_id": "prompt_params", "name": "Cấu trúc prompt 4 lớp, temperature và top_p", "pages": [28, 29]}
+  ]
+}

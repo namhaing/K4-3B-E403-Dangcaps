@@ -46,7 +46,7 @@
 
 **Output JSON của LLM:**
 ```json
-{ "concept_id": "", "level": 1, "page": 0, "evidence_quote": "", "question": "", "options": ["", "", "", ""], "answer": "", "explanation": "" }
+{ "concept_id": "", "level": 1, "page": 0, "evidence_quote": "", "question": "", "options": ["", "", "", ""], "answer": 0, "explanation": "" }
 ```
 Validator fail → sinh lại 1 lần. Fail tiếp → hiện *"Chưa có căn cứ cho khái niệm này"* và đổi khái niệm (failure path).
 
@@ -84,6 +84,8 @@ Nói gọn: **D làm thước đo, A dùng thước đo để sửa AI.** Cách 
 - Slide và §8 giao cho B để A dành thời gian cho vòng lặp AI.
 
 ## 2b. Hợp đồng giữa 3 tầng (chốt trong 30 phút đầu)
+
+> **Bản chi tiết (đủ JSON mẫu, `reason`, `status`, rule): [`codebase/CONTRACT.md`](codebase/CONTRACT.md).** Bảng dưới là bản tóm tắt.
 
 ```text
 web (C)  ──HTTP──▶  api (D)  ──gọi hàm──▶  ai (A)
@@ -143,17 +145,19 @@ Trong lúc chờ nhau, mỗi tầng dùng **stub trả JSON cố định**:
   examples/
   further-reading/
   ```
-- [x] Tạo `codebase/{api,web,ai}`, `eval/traces/`, `validation/`, `reflection/` (kèm `.gitkeep`), `.env.example`.
-- [ ] Chốt hợp đồng ở mục 2b với C và D.
-- [ ] Viết `codebase/ai/extract_pages.py`: trích text slide Day 1 → `pages.json` dạng `{page, text}`. **Giao cho D trước 11:00.**
-- [ ] Viết prompt với output JSON như mục 1: chỉ dùng text trang được đưa vào, câu trích phải nguyên văn, mô tả mức 1–3 lấy từ `concepts.json`.
-- [ ] Viết `generate_question()`.
-- [ ] Viết validator:
+- [x] Tạo `codebase/{api,web,ai}`, `eval/traces/`, `validation/`, `reflection/` (kèm `.gitkeep`), `.env.example`. *(đã tạo trên máy Nam; **chưa push** `api/ web/ eval/ validation/ reflection/`)*
+- [ ] Chốt hợp đồng ở mục 2b với C và D. *(bản nháp đã viết: `codebase/CONTRACT.md`, chờ Hiền + Duy đồng ý)*
+- [x] Viết `codebase/ai/extract_pages.py`: trích text slide Day 1 → `pages.json` dạng `{page, text}`. **Giao cho D trước 11:00.**
+- [x] Viết prompt với output JSON như mục 1: chỉ dùng text trang được đưa vào, câu trích phải nguyên văn, mô tả mức 1–3 lấy từ `concepts.json`.
+- [x] Viết `generate_question()`.
+- [x] Điền `.env` (openai · `gpt-4o-mini`), **gọi AI thật chạy được**: `try_generate --all --level 2` → **12/12 qua validator**, 1 khái niệm (`agent`) phải thử lần 2, mỗi câu 2–5 giây. *(18/9)*
+  - ⚠️ Phát hiện khi đọc tay: câu "mức 2" phần lớn vẫn là kiểu định nghĩa (gần mức 1); câu `ai_layers` gần lộ đáp án (đề chép cụm "chiếc ô lớn nhất", đáp án "AI" dưới ngưỡng 6 ký tự nên validator không bắt). → đưa vào golden set + sửa prompt ở vòng eval.
+- [x] Viết validator (11/11 test offline đạt: `python -m codebase.ai.test_validator`):
   - `evidence_quote` phải nằm trong text trang `page`
   - `answer` phải có trong `options`
   - đáp án không được xuất hiện trong đề
   - fail → sinh lại 1 lần → fail tiếp thì trả `no_evidence`
-- [ ] **Giao hàm chạy thật cho D trước 14:00.**
+- [ ] **Giao hàm chạy thật cho D trước 14:00.** *(hàm đã chạy AI thật, chờ push + Duy nối vào API)*
 - [ ] 15:00 chạy `run_eval.py` lượt 1. **Đọc từng case fail** và viết `eval/run-1.md`: bảng %, danh sách fail, nguyên nhân dự đoán. Giữ nguyên số thật, kể cả khi số xấu.
 - [ ] 15:30 quay video 30 giây cùng C. **Nộp CP3.**
 - [x] Dọn `canvas.md`, điền bảng README (còn thiếu mã học viên của B, C, D).
@@ -173,7 +177,7 @@ Trong lúc chờ nhau, mỗi tầng dùng **stub trả JSON cố định**:
 - [ ] Chốt danh sách **≥5 willing users** có tên thật.
 
 ### C — Hiền · Frontend
-- [ ] Đọc slide Day 1 → viết `concepts.json`: 8–10 khái niệm, mỗi khái niệm có `concept_id`, tên, danh sách trang, mô tả mức 1–3. **Giao cho A, B, D trước 11:00.**
+- [ ] *(A đã làm bản nháp 12 khái niệm ở `codebase/data/concepts.json`, Hiền rà lại và chốt)* Đọc slide Day 1 → viết `concepts.json`: 8–10 khái niệm, mỗi khái niệm có `concept_id`, tên, danh sách trang, mô tả mức 1–3. **Giao cho A, B, D trước 11:00.**
 - [ ] Dựng `codebase/web/` trên stub API:
   - màn chọn buổi (Day 1)
   - màn câu hỏi: đề, 4 lựa chọn, `[trang N]`, thanh tiến độ 1/5, nhãn mức khó
@@ -184,20 +188,24 @@ Trong lúc chờ nhau, mỗi tầng dùng **stub trả JSON cố định**:
 - [ ] 14:30 chuyển từ stub sang API thật của D. 15:30 quay video cùng A.
 
 ### D — Duy · Eval (bộ đo) + Backend
-- [ ] Dựng API ở mục 2b (FastAPI hoặc Flask) trên hàm AI giả:
+- [x] Dựng API ở mục 2b (FastAPI) — `codebase/api/` (`rules.py` rule thuần + `app.py` endpoint). **25/25 test** rule + API đạt (`python -m codebase.api.test_api`). Server chạy thật: `uvicorn codebase.api.main:app --port 8000`, `/docs` OK. *(18/9)*
   - lưu session trong RAM
   - rule mức khó: đúng → +1, sai → −1, kẹp 1–3, câu 1 ở mức 2
   - chọn khái niệm tiếp theo: vừa sai thì giữ khái niệm đó, vừa đúng thì sang khái niệm chưa hỏi
   - low-confidence theo định nghĩa ở mục 1 (dưới 3 câu, hoặc ≥3 câu trả lời dưới 3 giây) → trả `not_enough_data`. API cần nhận thêm `answer_ms` từ web
-- [ ] Trace log: mỗi lời gọi AI ghi một dòng vào `eval/traces/*.jsonl` gồm input, output, thời gian, kết quả validator (bằng chứng cho R5).
-- [ ] 14:00 nối hàm AI thật của A. **Giao API thật cho C trước 14:30.**
-- [ ] Viết golden set 20–24 case trong `eval/golden.csv`:
+- [x] Trace log: mỗi lời gọi AI ghi một dòng vào `eval/traces/*.jsonl` (`api-YYYYMMDD.jsonl`, có cả `/report`) gồm input, output, thời gian, kết quả validator (bằng chứng cho R5).
+- [x] 14:00 nối hàm AI thật của A — **đã nối và chạy thử với `gpt-4o-mini`** (flow L2-01, L3-02 đạt). *(18/9)*
+- [ ] **Giao API thật cho C trước 14:30.** *(code xong, chờ push; hợp đồng đã cập nhật trong `codebase/CONTRACT.md`: thêm `done`, lỗi 404/409/400)*
+- [x] Viết golden set **25 case** — file **`eval/golden-day1.csv`** (10 thường · 3 hiếm · 3 mỗi lớp ①②③④ · **14 case từ chatlog** có `turn_id`). *(18/9)*
+  - ⚠️ **Xung đột cần nhóm quyết:** Tâm đã push `eval/golden.csv` **60 case theo 6 chủ đề rộng** (ngoài slide Day 1, 0 case chatlog, chưa có trang nguồn, không chạy tự động được). Hai bộ đang để song song, `run_eval.py` đang dùng `golden-day1.csv`.
+  - Yêu cầu gốc của mục này:
   - 8–10 case thường
   - ≥2 case cho mỗi lớp ①②③④
   - 2–4 case hiếm
   - **≥10 case từ chatlog do B điền**, D viết các case còn lại và rà lại cả bộ
   - mỗi case ghi: input (khái niệm, mức, lịch sử), hành vi mong muốn, trang đúng
-- [ ] Viết `eval/run_eval.py`: chạy cả bộ qua hàm của A, tự chấm các chiều đo được bằng code (trích dẫn khớp trang, đúng khái niệm, lộ đáp án, từ chối đúng ở ① và ③), để trống cột chấm tay, xuất bảng %. **Sẵn sàng lúc 15:00 để A chạy lượt 1.**
+- [x] Viết rubric chấm tay `eval/rubric-cham-tay.md` (answer key · đúng khái niệm · đúng mức, có ví dụ Y/N, cách kiểm tra người ngoài chấm lệch ≤1/5).
+- [x] Viết `eval/run_eval.py` — chạy thử AI thật 7 case OK; bắt được đúng case fail 'chiếc ô lớn nhất' mà validator bỏ sót. *(18/9)* Lệnh: `python -m eval.run_eval --label run-1`. Yêu cầu gốc: chạy cả bộ qua hàm của A, tự chấm các chiều đo được bằng code (trích dẫn khớp trang, đúng khái niệm, lộ đáp án, từ chối đúng ở ① và ③), để trống cột chấm tay, xuất bảng %. **Sẵn sàng lúc 15:00 để A chạy lượt 1.**
 
 **Gợi ý case cho 4 lớp chỗ khó**
 

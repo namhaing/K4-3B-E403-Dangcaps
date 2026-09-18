@@ -12,3 +12,7 @@ further-reading/
 # Nội dung slide trích từ data pack — mỗi người tự chạy codebase/ai/extract_pages.py
 codebase/data/pages.json
 __pycache__/
+
+# CSV của nhóm trong eval/ được commit (chặn *.csv ở trên là cho data pack)
+!eval/*.csv
+!eval/results/*.csv
