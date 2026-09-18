@@ -1,52 +1,30 @@
-# A2 · VLearn Solo Arena
+# Canvas CP1 — VLearn Solo Arena
+
+**Lớp:** 3B · **Phòng:** E403 · **Cụm:** 6 · **Đội trưởng:** Nguyễn Hải Nam — MSSV `__________`
+
 
 | # | Dòng | Nội dung |
 |---|---|---|
-| 1 | Track + đề | **A2 · Tính năng AI mới trên VLearn — VLearn Solo Arena** |
-| 2 | Job executor (ai · đang ở đâu · làm gì) | **Học viên · sau buổi học · làm bài test xếp hạng rồi tham gia một trận đấu ngắn với người có trình độ tương đương.** |
-| 3 | Pain một câu (ai – đang làm gì – vướng đâu – hậu quả) | **Học viên khi tự ôn sau buổi học không biết trình độ hiện tại của mình và thường gặp đối thủ quá mạnh hoặc quá yếu, nên trận đấu thiếu công bằng, nhanh mất động lực và không giúp ôn đúng mức.** |
-| 4 | 1–2 bằng chứng đầu | **Cần bổ sung từ data pack:** số học viên có câu hỏi/sai bài tập lặp lại sau buổi học, kèm mã hội thoại hoặc tin nhắn. **Cần khảo sát/phỏng vấn:** hỏi ít nhất 5 học viên; ghi số người gặp pain và 1–2 câu trích dẫn ngắn. Không dùng số liệu giả. |
-| 5 | Lát cắt MỘT CÂU (1 user · 1 việc · 1 quyết định AI · 1 kết quả) | **Một học viên mới · hoàn thành bài test xếp hạng · AI ước lượng rank kèm độ tin cậy và ghép một đối thủ cùng thực lực · học viên chơi trận 1v1 công bằng, nhận bonus nếu thắng và biết một chủ đề cần ôn lại.** |
-| 6 | AI tự làm đến đâu + lý do · ≥3 willing users ngoài nhóm | **AI điều chỉnh độ khó của bài test, đề xuất rank, ghép đối thủ, chọn/tạo biến thể câu hỏi và giải thích kết quả dựa trên dữ liệu có căn cứ; giảng viên quyết định kiến thức được kiểm tra, duyệt ngân hàng câu hỏi và bật/tắt trận vì giảng viên là người chịu trách nhiệm nội dung dạy.** Cần xác nhận willingness với ít nhất 3 học viên ngoài nhóm. |
-| 7 | Phân công có tên | **Nguyễn Trần Bảo Tâm** — thu 30 bài trả lời test thật và phối hợp gán nhãn trình độ bằng tay làm đáp án chuẩn · **Trần Thị Thu Hiền** — prototype form test xếp hạng, AI call chấm trình độ và ghép trận · **Bùi Phương Duy** — tạo golden set từ bộ đã gán nhãn, đặt quality bar và eval độ chính xác của rank/mức độ phù hợp của trận ghép · **Nguyễn Hải Nam** — spec tính năng, canvas, slide và demo luồng test → xếp rank → ghép trận → nhận bonus. |
+| 1 | Track + đề | **A2** · VLearn — tính năng mới: **Solo Arena**, luyện tập đúng sức sau buổi học |
+| 2 | Job executor (ai · đang ở đâu · làm gì) | Học viên **vừa học xong một buổi trên VLearn**, muốn tự luyện lại nhưng không biết nên luyện gì và ở mức nào |
+| 3 | Pain một câu (ai – đang làm gì – vướng đâu – hậu quả) | Sau buổi học, học viên chỉ có cách đọc lại slide hoặc hỏi tutor giảng lại; không có hoạt động nào để tự kiểm, không biết mình đang ở mức nào và nên ôn gì tiếp, nên hoặc luyện thứ đã biết hoặc bỏ luôn — 1/4 học viên tương tác đúng một lần rồi không quay lại |
+| 4 | 1–2 bằng chứng đầu | `understanding_level` có dữ liệu ở **20/13.494 lượt (0,15%)** · `suggest_next_topic` **18/13.494 (0,13%)** · `motivate` **21 (0,16%)** và `celebrate_progress` **7 (0,05%)** — bốn cơ chế "biết mình ở đâu / học gì tiếp / giữ động lực" đều đã được thiết kế sẵn vào tutor và bỏ trống. Trong **19 cột** chatlog không có cột nào ghi nhận học viên **làm bài** — 13.494 lượt đều là hỏi-đáp. **114/448 học viên K4 (25,4%)** chỉ hỏi một lần *(proxy cho rời bỏ)*. *Cách đếm:* `move_used.value_counts()`, `understanding_level.notna()`, `student.value_counts()==1`, lọc `cohort_hint=K4` — script `mining.py` trong repo. *Mã minh hoạ khái niệm học viên hay lẫn:* `T10417`, `T10427`, `T10438`, `T10455`. **+ Khảo sát:** `__/20` học viên nói lần gần nhất tự ôn sau buổi học thì không biết bắt đầu từ đâu |
+| 5 | Lát cắt MỘT CÂU (1 user · 1 việc · 1 quyết định AI · 1 kết quả) | Một học viên vừa xong buổi học, đang trong một lượt luyện 5 câu · cần câu tiếp theo vừa sức để luyện đúng chỗ còn yếu · hệ thống chọn khái niệm × mức khó theo câu vừa rồi đúng hay sai, rồi **AI sinh câu hỏi bám đúng trang slide của khái niệm đó trong buổi học** · kết quả là câu hỏi mới kèm `[trang N]`, và cuối lượt là một chủ đề cần ôn có dẫn nguồn |
+| 6 | AI tự làm đến đâu + 1 dòng lý do · ≥3 willing users ngoài nhóm | **Conditional.** *AI tự:* sinh câu hỏi trắc nghiệm cho khái niệm × mức đã chọn, **chỉ khi** trích được câu nguyên văn từ trang slide làm căn cứ (code kiểm lại). *Rule làm, không giao AI:* chọn mức khó, chọn khái niệm, chấm đúng/sai theo đáp án. *AI không tự:* sinh câu về khái niệm không có trong slide buổi đó (không có căn cứ → "chưa có căn cứ", đổi khái niệm); không kết luận học viên yếu khi dưới 3 câu hoặc trả lời quá nhanh → "chưa đủ dữ liệu để đánh giá". *Lý do cost-of-error:* answer key sai thì học viên bị chấm oan, mất đúng thứ sản phẩm đang cố tạo ra là động lực, và có thể học sai kiến thức, rất khó sửa. Vì vậy chấm điểm để rule làm, còn câu hỏi AI sinh ra phải có trích dẫn. Ngược lại, câu hơi lệch mức thì học viên chỉ cần bấm "Cho tôi câu khác", mất 3 giây. **Willing users (đã hỏi và đồng ý):** `[Tên 1]` · `[Tên 2]` · `[Tên 3]` |
+| 7 | Phân công có tên | **Nguyễn Hải Nam** (đội trưởng) — **AI + vòng eval**: prompt, `generate_question()`, validator bám trang slide, chạy eval từng lượt + phân tích case fail, chốt quality bar; spec §4 §9, nộp form · **Nguyễn Trần Bảo Tâm** — **evidence + data script**: `mining.py`, `extract_cases.py` lọc case từ chatlog vào golden set, khảo sát 20 người + log, user test; spec §1 §2 §3 §8, slide · **Trần Thị Thu Hiền** — **frontend**: màn luyện 5 câu, 4 đường đi (happy / chưa đủ dữ liệu / không có căn cứ / báo câu sai), `concepts.json`; spec §6, video · **Bùi Phương Duy** — **bộ đo + backend**: golden set, `run_eval.py`, rubric chấm tay, API + rule mức khó + trace log; spec §5 §7 |
 
-## Phạm vi MVP
+## Non-goals — những thứ KHÔNG build
 
-- Trước trận đầu tiên, học viên làm bài test xếp hạng thích ứng gồm khoảng 10–15 câu từ kiến thức giảng viên đã duyệt.
-- AI bắt đầu bằng câu mức trung bình rồi tăng hoặc giảm độ khó theo câu trả lời để ước lượng trình độ.
-- Kết quả gồm một rank cá nhân và độ tin cậy; nếu độ tin cậy thấp, hệ thống yêu cầu thêm câu hỏi trước khi ghép trận xếp hạng.
-- AI ưu tiên ghép người cùng rank; chỉ mở rộng sang rank liền kề khi thời gian chờ vượt ngưỡng đã định.
-- Trận 1v1 gồm 5 câu, kéo dài khoảng 3 phút.
-- Người thắng nhận **Win Bonus** gồm điểm kinh nghiệm và xu để mở huy hiệu hoặc vật phẩm trang trí; phần thưởng không mua được đáp án hay lợi thế trong trận.
-- Cả hai người chơi vẫn nhận điểm hoàn thành; người thua không bị trừ thưởng học tập để tránh mất động lực.
-- Chuỗi thắng có bonus tăng nhẹ nhưng có mức trần; kết quả trước cùng một đối thủ bị giảm thưởng để hạn chế việc “farm” điểm.
-- Rank được cập nhật dần từ kết quả nhiều trận, không bị “đóng đinh” bởi một bài test duy nhất.
-- Không công khai điểm yếu, câu trả lời trong bài test hoặc dữ liệu chi tiết dùng để ghép trận.
-- Người chơi dùng biệt danh ẩn danh.
-- Nội dung chỉ đến từ slide, bài tập và dữ liệu nằm trong pack.
-- Giảng viên duyệt chủ đề và ngân hàng câu hỏi trước khi mở trận.
-- Sau trận, AI chỉ nhận xét điều có bằng chứng, ví dụ: “Bạn sai 2 câu về vòng lặp”. Nếu thiếu dữ liệu, AI ghi rõ “Chưa đủ dữ liệu để đánh giá”.
+1. Không ghép đối thủ tự động, không đấu realtime. *(Nếu làm phần mở rộng thì chỉ thách đấu qua link.)*
+2. Không có xu, cửa hàng hay vật phẩm mua bán. XP và huy hiệu (nếu có) chỉ để hiển thị.
+3. Không công khai điểm yếu: bảng xếp hạng (nếu có) không hiện tên thật, chủ đề cần ôn hay câu trả lời. Chỉ gồm người tự bật tham gia, chỉ hiện biệt danh, XP và số trận.
+4. Không rank năng lực bền vững (Elo). XP đo mức luyện tập, không đo mức hiểu. Mỗi lượt luyện độc lập.
+5. Không sinh câu hỏi ngoài slide của buổi đang luyện (demo: Day 1).
 
-## Hard tests
+> Phần mở rộng (thách đấu, XP, bảng xếp hạng) **chỉ làm sau khi core xong**, xem `ke-hoach-nhom.md` mục 9. Phần này không thêm quyết định AI mới.
 
-| Tình huống | Cách xử lý |
-|---|---|
-| Lớp hỏi ít, data thưa | Dùng bài test xếp hạng làm tín hiệu khởi đầu; hiển thị độ tin cậy thấp và cập nhật rank sau các trận tiếp theo. |
-| Câu hỏi mẫu chiếm đa số | Giảm trọng số câu mẫu, nhận diện câu trùng và tạo biến thể kiểm tra cùng khái niệm thay vì học thuộc đáp án. |
-| Hai trang cùng nói một khái niệm | Gom nội dung theo `concept_id`, không coi mỗi trang là một lỗ hổng riêng và tránh hỏi trùng trong cùng trận. |
-| Signal nhiễu do một người hỏi 20 lần | Giới hạn trọng số đóng góp của mỗi học viên theo từng khái niệm; không để một người làm sai lệch độ khó chung. |
-| Không tìm được đối thủ phù hợp | Mở chế độ đấu với AI hoặc xếp hàng chờ; không ghép chênh lệch lớn chỉ để bắt đầu nhanh. |
-| Học viên đoán mò hoặc làm bài test bất thường | Kiểm tra độ nhất quán giữa độ khó, thời gian trả lời và kết quả; yêu cầu thêm câu thay vì kết luận chắc chắn hoặc tự động phạt. |
-| Học viên tiến bộ nhưng rank cũ quá thấp | Cập nhật rank sau nhiều trận gần nhất và cho phép làm lại bài test sau một khoảng thời gian hợp lý. |
-| Hai người cố tình đấu lại để farm bonus | Giảm hoặc khóa Win Bonus khi hai tài khoản gặp nhau liên tục; ưu tiên ghép với đối thủ mới cùng trình độ. |
-| Bonus khiến học viên chỉ quan tâm thắng thua | Giữ phần thưởng ở mức nhỏ, vẫn thưởng cho việc hoàn thành và hiển thị nội dung cần ôn như kết quả chính của trận. |
+## Quality bar dự kiến *(chốt chính thức trong `spec.md` §7 tại CP4, 21:00 18/9)*
 
-## An toàn và đạo đức
+> Đạt khi **≥80%** câu có trích dẫn khớp đúng trang slide và đúng khái niệm đã chọn · **≥90%** answer key đúng (người chấm) · **≤10%** câu lộ đáp án trong đề · **≥70%** câu đúng mức khó yêu cầu (người ngoài nhóm chấm) · **100%** case ngoài phạm vi (①, ③) được từ chối đúng.
 
-- Không hiển thị ai đã hỏi gì, ai yếu phần nào hoặc dữ liệu cá nhân dùng để ghép trận.
-- Không đưa dữ liệu học viên ra ngoài data pack.
-- Không xếp hạng công khai; kết quả chi tiết chỉ thuộc về từng học viên và giảng viên có quyền phù hợp.
-- Bonus chỉ là phần thưởng động lực và vật phẩm trang trí, không được tạo lợi thế học tập hoặc lợi thế thi đấu kiểu “pay-to-win”.
-- Rank chỉ phản ánh năng lực trong phạm vi kiến thức đã kiểm tra, không được mô tả như năng lực tổng quát của học viên.
-- AI không khẳng định mức hiểu khi thiếu căn cứ và phải nêu giới hạn của đánh giá.
-- AI chỉ đề xuất; giảng viên là người quyết định nội dung dạy và nội dung được đưa vào trận.
+*Đổi so với bản CP1:* bỏ chiều "mức khó đổi đúng chiều ≥75%" vì mức khó do rule quyết định nên luôn đạt 100%, không đo được gì. Thêm chiều answer key vì đây là lỗi nguy hiểm nhất.
