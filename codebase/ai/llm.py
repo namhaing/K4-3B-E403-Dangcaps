@@ -10,6 +10,7 @@ Chỉ dùng để test code offline / cho web & API chạy thử. Không dùng �
 """
 import json
 import os
+from functools import lru_cache
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -21,14 +22,19 @@ MODEL = os.getenv("LLM_MODEL", {"openai": "gpt-4o-mini", "gemini": "gemini-2.0-f
 TEMPERATURE = 0.5  # sinh câu: đủ đa dạng cho "Cho tôi câu khác"; hạ từ 0.7 sau case "AI chính" (18/9)
 
 
+@lru_cache(maxsize=1)
+def _openai_client():
+    """Dùng chung 1 client: giữ kết nối mở giữa các lần gọi, không bắt tay TLS lại mỗi lần (client an toàn khi dùng nhiều luồng)."""
+    from openai import OpenAI
+
+    return OpenAI(api_key=os.getenv("LLM_API_KEY"), timeout=30)
+
+
 def call_json(system: str, user: str, temperature: float | None = None) -> dict:
     """Gửi prompt, bắt model trả JSON, parse thành dict. Lỗi mạng/parse -> raise để generator xử lý."""
     temp = TEMPERATURE if temperature is None else temperature
     if PROVIDER == "openai":
-        from openai import OpenAI
-
-        client = OpenAI(api_key=os.getenv("LLM_API_KEY"), timeout=30)
-        resp = client.chat.completions.create(
+        resp = _openai_client().chat.completions.create(
             model=MODEL,
             temperature=temp,
             response_format={"type": "json_object"},

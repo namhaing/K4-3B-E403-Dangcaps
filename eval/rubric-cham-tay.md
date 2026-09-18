@@ -48,6 +48,8 @@
 |---|---|---|
 | "Khái niệm nào sau đây miêu tả chính xác về AI?" | 2 | **N**: đây là câu nhận biết (mức 1) |
 | "Discriminative AI khác Generative AI ở đầu ra thế nào?" | 2 | Y |
+| "Mô hình trả lời tự tin nhưng sai, hiện tượng này được gọi là gì?" | 2 | **N**: mô tả → gọi tên, là mức 1 dù có khoác tình huống |
+| "Một nhóm muốn tạo văn bản và ảnh, nên dùng công nghệ nào?" (ML / DL / GenAI / LLM) | 2 | **N**: vẫn là mô tả → gọi tên |
 | "Ứng dụng cần kết quả ổn định giữa các lần chạy, nên đặt temperature thế nào?" | 3 | Y |
 
 ---

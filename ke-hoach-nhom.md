@@ -23,6 +23,7 @@
 - `luong.md` đã viết lại theo flow luyện 5 câu. Đã xoá `luong_app.md` và 2 file checklist cũ.
 - `SOLO-ARENA-HANDOFF.md` có ghi chú ở đầu file: phân công, bar và phạm vi trong đó đã cũ.
 - **14:00 — gỡ data pack khỏi repo public + xoá khỏi toàn bộ lịch sử git (force-push).** Commit `ff8a6b1` đã đưa `eval/slides/*.pdf`, `eval/chatlog/`, `__pycache__` lên GitHub. Đã xoá khỏi 17/17 commit, `.gitignore` chặn `eval/slides/`, `eval/chatlog/`, `*.pdf`; `eval/candidates.csv` rút trích đoạn còn ≤ 80 ký tự. **Mỗi người phải chạy `git fetch` + `git reset --hard origin/main`** (lưu thay đổi chưa commit trước). ⛔ Không đưa slide/chatlog vào repo nữa.
+- **16:35 — nhánh `BuiPhuongDuy_2A202602684` (commit "data" 15:03) đã đưa 6 transcript + DATA_DICTIONARY của data pack lên GitHub → nhánh đã bị xoá** (xác nhận không còn nhánh nào chứa data pack). `.gitignore` trên `main` đã chặn `codebase/data/vlearn-pack/`. ⛔ Nhắc cả nhóm: **kể cả nhánh riêng cũng là public**.
 
 **Còn phải làm**
 1. Pain mới có bằng chứng "tutor không làm", chưa có bằng chứng "học viên cần". **Khảo sát 20 người là bắt buộc.** Proxy "hỏi 1 lần" có thể là người đã hài lòng, nên ghi rõ giới hạn trong spec.
@@ -170,7 +171,7 @@ Trong lúc chờ nhau, mỗi tầng dùng **stub trả JSON cố định**:
 - [ ] **Giao hàm chạy thật cho D trước 14:00.** *(hàm đã chạy AI thật, chờ push + Duy nối vào API)*
 - [x] ~~15:00~~ **12:25 chạy `run_eval.py` lượt 1** (25 case, `gpt-4o-mini`). Tự động: 18/18 ra câu có trích dẫn khớp · ①②③ 9/9 đúng · lộ đáp án 1/18 · chép cụm câu trích 5/18. **Chấm tay NHÁP (Claude, chờ Nam/Duy duyệt):** answer key 16/18 (89%, hụt bar dự kiến 90%) · đúng khái niệm 18/18 · đúng mức 13/18 (72%). Phân tích nháp đã có ở cuối `eval/run-1.md`. *(18/9)*
 - [ ] **Nam + Duy duyệt từng dòng chấm tay** trong `eval/results/run-1.csv`, đổi `nguoi_cham` thành tên mình, chạy `python -m eval.run_eval --summarize run-1`; Nam sửa phần phân tích bằng lời của mình.
-- [ ] 15:30 quay video 30 giây cùng C. **Nộp CP3.**
+- [ ] 15:30 quay video 30 giây cùng C. **Nộp CP3.** *(nội dung form đã soạn sẵn ở `nop-cp3.md` theo run-2: 23/31 đạt; còn thiếu link video; chấm tay run-2 cần Nam/Duy duyệt; eval/ + spec.md phải push lên main trước khi nộp)*
 - [x] Dọn `canvas.md`, điền bảng README (còn thiếu mã học viên của B, C, D).
 
 ### B — Tâm · Evidence + Data script
@@ -195,13 +196,17 @@ Trong lúc chờ nhau, mỗi tầng dùng **stub trả JSON cố định**:
 
 ### C — Hiền · Frontend
 - [ ] *(A đã làm bản nháp 12 khái niệm ở `codebase/data/concepts.json`, Hiền rà lại và chốt)* Đọc slide Day 1 → viết `concepts.json`: 8–10 khái niệm, mỗi khái niệm có `concept_id`, tên, danh sách trang, mô tả mức 1–3. **Giao cho A, B, D trước 11:00.**
-- [ ] Dựng `codebase/web/` trên stub API:
+- [ ] **Web: Hiền đang làm bản chính (15:15).** Bản Claude dựng lúc 14:40 chỉ giữ trên máy Nam làm tham khảo (`codebase/web/index-ban-claude.html`, không push). Bản tham khảo: `codebase/web/index.html`, mở tại `http://localhost:8000/app/` (API phục vụ luôn web). Đủ 4 màn + 4 đường đi (happy · chưa đủ dữ liệu · chưa có căn cứ/đổi khái niệm · báo câu sai/cho câu khác), loading, đo `answer_ms`, dòng phạm vi Day 1. **Đã chạy thật end-to-end trên Edge với AI thật, 0 lỗi JS.**
+  - **14:55 — gắn demo vào giao diện trang chủ VLearn** (dựng lại theo ảnh chụp): menu "Luyện tập" đổi "Sắp ra mắt" → "Mới"; điểm vào ở dòng "Buổi 1: Day01", nút "Ôn nhanh", ô "Chỗ bạn đang yếu". Sau lượt luyện, ô "Chỗ bạn đang yếu" hiện chủ đề cần ôn + trang slide (thiếu dữ liệu thì không kết luận). Phần khoá học / chuỗi ngày / hoạt động là **MOCK tĩnh**, gắn nhãn DEMO. Chạy thật end-to-end trên Edge, 0 lỗi JS.
+  - 📸 **Bằng chứng cho spec §1 và slide:** trang chủ VLearn thật đang có "Luyện tập — Sắp ra mắt" và "Chỗ bạn đang yếu: Chưa đo được phần nào. Làm một bài quiz để VLearn biết bạn đang ở đâu" → sản phẩm đã chừa chỗ cho đúng tính năng này nhưng chưa có.
+  - Phát hiện khi chạy: (1) câu trích đôi khi **không chứng minh đáp án** (hỏi về ML nhưng trích câu "AI — chiếc ô lớn nhất") — validator chỉ kiểm câu trích có trên slide; (2) trả lời sai liên tục thì **kẹt cùng 1 khái niệm cả 5 câu** — rule "sai giữ khái niệm" chưa có giới hạn.
+- [ ] ~~Dựng `codebase/web/` trên stub API~~ (yêu cầu gốc):
   - màn chọn buổi (Day 1)
   - màn câu hỏi: đề, 4 lựa chọn, `[trang N]`, thanh tiến độ 1/5, nhãn mức khó
   - màn phản hồi đúng/sai kèm giải thích và câu trích slide
   - màn kết quả: chủ đề cần ôn + `[trang N]`
-- [ ] Dòng giới hạn phạm vi luôn hiển thị: *"Câu hỏi chỉ lấy từ slide Day 1"* (HAX G1/G2).
-- [ ] Đo thời gian trả lời mỗi câu (`answer_ms`) và gửi kèm `POST /answer`.
+- [x] Dòng giới hạn phạm vi luôn hiển thị: *"Câu hỏi chỉ lấy từ slide Day 1"* (HAX G1/G2).
+- [x] Đo thời gian trả lời mỗi câu (`answer_ms`) và gửi kèm `POST /answer`.
 - [ ] 14:30 chuyển từ stub sang API thật của D. 15:30 quay video cùng A.
 
 ### D — Duy · Eval (bộ đo) + Backend
@@ -212,7 +217,7 @@ Trong lúc chờ nhau, mỗi tầng dùng **stub trả JSON cố định**:
   - low-confidence theo định nghĩa ở mục 1 (dưới 3 câu, hoặc ≥3 câu trả lời dưới 3 giây) → trả `not_enough_data`. API cần nhận thêm `answer_ms` từ web
 - [x] Trace log: mỗi lời gọi AI ghi một dòng vào `eval/traces/*.jsonl` (`api-YYYYMMDD.jsonl`, có cả `/report`) gồm input, output, thời gian, kết quả validator (bằng chứng cho R5).
 - [x] 14:00 nối hàm AI thật của A — **đã nối và chạy thử với `gpt-4o-mini`** (flow L2-01, L3-02 đạt). *(18/9)*
-- [ ] **Giao API thật cho C trước 14:30.** *(code xong, chờ push; hợp đồng đã cập nhật trong `codebase/CONTRACT.md`: thêm `done`, lỗi 404/409/400)*
+- [x] **Giao API thật cho C trước 14:30.** *(code xong, chờ push; hợp đồng đã cập nhật trong `codebase/CONTRACT.md`: thêm `done`, lỗi 404/409/400)*
 - [x] Viết golden set **25 case** — file **`eval/golden-day1.csv`** (10 thường · 3 hiếm · 3 mỗi lớp ①②③④ · **14 case từ chatlog** có `turn_id`). *(18/9)*
   - ⚠️ **Xung đột cần nhóm quyết:** Tâm đã push `eval/golden.csv` **60 case theo 6 chủ đề rộng** (ngoài slide Day 1, 0 case chatlog, chưa có trang nguồn, không chạy tự động được). Hai bộ đang để song song, `run_eval.py` đang dùng `golden-day1.csv`.
   - Yêu cầu gốc của mục này:
@@ -240,9 +245,44 @@ Trong lúc chờ nhau, mỗi tầng dùng **stub trả JSON cố định**:
 > Sau 21:00 **không sửa quality bar được nữa**. Khai phần chưa xong thì không bị trừ, giấu mới bị trừ.
 
 ### A — Nam · Vòng sửa AI + spec §4 + chốt bar
-- [ ] Từ `run-1.md`, sửa **2–3 nguyên nhân fail lớn nhất** (prompt, validator, cách đưa trang vào). Mỗi thay đổi ghi 1 dòng vào §9 Changelog, trỏ tới case nào.
-- [ ] Chạy lượt 2 → `eval/run-2.md`, so sánh với lượt 1.
-- [ ] **Chốt quality bar cùng D trước 20:30**, ví dụ:
+- [x] Từ `run-1.md`, sửa **2–3 nguyên nhân fail lớn nhất** (prompt, validator, cách đưa trang vào). Mỗi thay đổi ghi 1 dòng vào §9 Changelog, trỏ tới case nào.
+- [x] **Sửa sau run-1 + chạy run-2 (14:51, 31 case)** *(18/9)* — chấm tay NHÁP, chờ Nam/Duy duyệt:
+  - Thêm **kiểm chéo bằng AI** (giải lại câu, không biết đáp án) → chặn được case demo "AI chính" và G02. Prompt luật 11–12 (mức 3 bắt buộc tình huống; cấm lấy tiêu đề slide làm đáp án). `temperature` 0.7 → 0.5. Golden +6 case của Tâm (đổi mã T-G…, sửa cột thiếu).
+  - Kết quả: answer key 16/18 → **21/21**; đúng mức 72% → **81%**; mức 3 có tình huống 1/4 → **6/6**; chép cụm 5/18 → 3/21. Đánh đổi: ra câu 100% → **88%** (3 case bị chặn — đã đọc, cả 3 chặn đúng).
+  - Còn lỗi: mức 2 hay thành câu nhận biết; L4-03 vẫn chép "chiếc ô lớn nhất".
+- [x] **Sửa luật chọn khái niệm (Duy) — phát hiện khi chạy app, eval không thấy** *(18/9)*: log app cho thấy 29 trang slide chỉ hỏi tới **7 trang, trang 3 chiếm 34 lần**, vì mọi lượt bắt đầu ở khái niệm đầu danh sách và sai thì kẹt mãi 1 khái niệm.
+  - Sửa: (1) xáo thứ tự khái niệm mỗi lượt; (2) sai 2 lần liên tiếp cùng khái niệm thì chuyển; (3) khái niệm nhiều trang thì gợi ý AI dùng trang chưa hỏi. Test rule/API **29/29** (thêm 4 test).
+  - Kiểm chứng 3 lượt AI thật: **7 khái niệm, 11 trang** (3, 4, 6, 7, 18, 19, 20, 21, 25, 26, 29); trong 1 khái niệm đổi trang (19→18, 20→21, 7→6); không còn kẹt.
+  - Ghi §9 Changelog. Bài học cho reflection: golden set gọi thẳng từng khái niệm nên không lộ lỗi phân bố — phải chạy như người dùng thật.
+- [x] **Đo chỗ yếu qua nhiều lượt (18:00–18:20, Claude làm, Duy + Hiền rà lại)** — chi tiết: `bao-cao-do-cho-yeu.md`
+  - Backend: `codebase/api/progress.py` (hồ sơ theo mã học viên ẩn danh, file `codebase/data/progress.json` không commit), `rules.concept_status` (≥ 3 câu; sai ≥ 2/3 câu gần nhất → đang yếu), `rules.order_for_learner` (lượt sau ưu tiên đang yếu), `GET /learner/{id}/progress`, câu < 3 giây không tính. Test **41/41** (thêm 12).
+  - Frontend (web của Hiền, chỉ thêm, không xoá): mã học viên, khối "Bản đồ kiến thức của bạn", nút "Ôn chỗ yếu ngay", thông báo "Lượt này ưu tiên ôn lại…", nút xem bản đồ ở màn kết quả.
+  - Chạy thật Edge + AI thật: học viên mới → "Chưa đo được phần nào"; sau 1 lượt → 3/12 phần "Chưa đủ dữ liệu" (không kết luận vội); hồ sơ có phần yếu → "Ôn chỗ yếu" → câu đầu hỏi đúng phần đó. 0 lỗi JS.
+  - Spec: lát cắt + non-goals (viết lại, mục cũ đang trống) + bảng thiết kế + §4b G10 + §5 (+4 kịch bản) + §6 (+1 đường đi) + §9. Canvas + CONTRACT cập nhật.
+- [x] **Bản đồ trực quan hơn + ôn lại ngay (18:20–18:35)** — theo góp ý của Nam: thanh tổng quan, "Cần ôn ngay", lộ trình theo slide; màn "Ôn lại kiến thức" (câu đã sai + slide gốc); "Luyện 3 câu phần này". Test **49/49**. Chạy thật Edge + AI thật: bản đồ → ôn lại (3 câu sai thật, slide 4) → luyện 3 câu cùng khái niệm → bản đồ cập nhật; 0 lỗi JS, mobile không tràn. Sửa lỗi phát hiện khi chạy: lượt ôn riêng 1/3 lần không ra câu → thử lại chính khái niệm → 5/5.
+- [x] **Ảnh slide thật khi ôn lại (18:50)**: `GET /slide/{page}.png` (vẽ từ PDF gốc, giữ trong RAM); màn ôn hiện ảnh slide + chữ thu gọn, câu trích có link nhảy tới ảnh; nút "Xem slide ↗" ở màn phản hồi. Test **52/52**. Chạy thật Edge: ảnh slide 4 hiện đủ 1536×864, 0 lỗi JS. ⚠️ Không push ảnh chụp có nội dung slide (đã cắt `docs/anh/on-lai-kien-thuc.png`, `.gitignore` chặn `docs/anh/*slide*.png`).
+- [x] **Sửa mức 2 (19:30, Claude làm, chờ Nam/Duy duyệt)** — prompt luật 11 + `level_guide["2"]`: cấm "mô tả → gọi tên", chỉ cho so sánh 2 khái niệm hoặc chọn phát biểu đúng có lựa chọn sai là hiểu nhầm cụ thể. Rubric mức 2 thêm ví dụ N; spec §7 dòng "Mức khó" khớp rubric; §9 thêm 1 dòng.
+  - ⚠️ Đọc lại run-2 theo rubric: đúng mức thật **14/21 (67%) < bar 70%** (G05, G06, T-G53 chấm Y dễ quá). Mức 2 thật 4/11.
+  - Chạy thử 14 case mức 2 (`eval/run-3-muc2.md`, không dùng làm số nộp): mức 2 thật **7/12 (58%)**, answer key 12/12, ra câu 12/13. Chưa đạt 70%.
+  - Còn lại: 5/12 câu vẫn khoác tình huống rồi hỏi "loại/khái niệm nào" → đã xử lý ở dòng dưới.
+- [x] **Validator chặn mức 2 dạng gọi tên (19:45, Claude làm, chờ Nam/Duy duyệt)**: `validator.NAMING` + luật "4 lựa chọn chỉ là tên"; chỉ mức 2; lỗi kèm cách sửa gửi lại cho AI. Test validator **25/25** (+6), API 52/52.
+  - Chạy thử 14 case mức 2 (`eval/run-4-muc2.md`, không dùng làm số nộp): đúng mức 2 **12/12**, answer key **11/12** (G07 có 2 đáp án đúng, kiểm chéo không bắt), ra câu 12/13.
+  - ⚠️ Cái giá: độ trễ trung vị **7.0 s** (5/12 câu phải sinh lại). Lỗi cũ còn: câu trích khớp trang nhưng nhiều khi không chứng minh đáp án.
+  - ⚠️ Cái giá độ trễ 7 s → đã xử lý ở dòng dưới.
+- [x] **Giảm thời gian chờ bằng sinh sẵn (19:50, Claude làm, chờ Duy rà vì là code API)**: `create_app(prefetch=True)` bật trong `main.py`; câu đầu sinh sẵn lúc bật server, câu tiếp sinh sẵn cả 2 nhánh đúng/sai trong lúc học viên đọc; dùng chung client OpenAI. Hợp đồng API + web **không đổi**.
+  - Đo AI thật: trước khi sửa chờ câu đầu 5.8–9.3 s, sau mỗi lần trả lời 3.5–8.6 s → sau khi sửa **0.0 s** (học viên đọc 8 s); học viên nhanh nhất (3 s) chờ 0.6–1.5 s. Test API **57/57** (+5).
+  - Cái giá: khoảng 2 lần gọi AI mỗi câu + 12 câu lúc bật server. Mở server trước khi demo ~20 s để sinh sẵn xong.
+- [x] **Giới hạn "Đổi câu khác" 2 lần mỗi lượt (19:57, Claude làm, Nam duyệt)** — Nam phát hiện: đổi không giới hạn thì lượt không bao giờ xong và học viên né câu khó. API: `rules.MAX_SKIPS`, `skips_left` trong mỗi câu, quá giới hạn → 409, trace `skip`. Web: nút "Đổi câu khác (còn n)", hết thì khoá + dòng nhắc. "Báo câu sai" không bị trừ. CONTRACT cập nhật. Test API **61/61** (+4).
+  - [ ] Chưa thử trên trình duyệt thật (bấm thử: đổi 2 lần → nút khoá → vẫn trả lời và xong lượt).
+- [x] **Chế độ Solo 1v1 kiểu Quizizz (20:15, Claude làm, Nam duyệt)**: đếm ngược mỗi câu 20/30/45 s theo mức, chạm là nộp, điểm 500–1000 theo tốc độ, đối thủ mô phỏng tính theo tốc độ; hết giờ → 0 điểm + API `timed_out` (không vào bản đồ). Spec thêm §4c (luật chế độ đấu) + §5 + §9; CONTRACT cập nhật. Test API **63/63**. Đã thử trên Edge (AI giả): đồng hồ, sai, hết giờ, đổi câu, đúng nhanh +961, bản đồ, mobile — đều đúng.
+  - [ ] Còn mở: hồ sơ của chính học viên được gán sẵn số liệu mẫu (rating 1240, 13 trận, 8 thắng — `app.js` `loadProfile`), spec chỉ khai "người chơi khác là dữ liệu mẫu" → sửa về 0 trận hoặc ghi rõ trên giao diện.
+- [x] **Chế độ đấu: đọc trước, 10 s trả lời, điểm hiện trên thanh đếm (20:20, Claude làm, Nam duyệt)** — Nam muốn 10 s/câu; đo câu thật mức 2–3 cần 25–40 s chỉ để đọc → Nam chọn kiểu Kahoot. Đã thử trên Edge (AI giả): khoá đáp án khi đọc, tự mở sau 20 s, điểm +1000 → +500 trên thanh, hết giờ +0, phím tắt, bản đồ, mobile — đều đúng. Spec §4c + §9 cập nhật.
+- [x] **Chế độ đấu theo vòng kiểu Kahoot (20:30, Claude làm, Nam duyệt)**: đề trước, đếm 3-2-1 → đáp án + 10 s → cả hai chọn xong thì lộ đối thủ → tự sang câu sau 6 s (có "Tạm dừng để đọc"). Sửa lỗi: lượt "chưa đủ dữ liệu" trước đây mất tỉ số + rating. Thử đủ 5 vòng trên Edge (AI giả), 0 lỗi JS. Spec §4c + §9.
+  - ⚠️ 3 s đọc đề + 10 s trả lời chặt với câu mức 2–3 (84–100 chữ) → đo tỷ lệ hết giờ khi user test.
+- [x] **Chế độ đấu: bỏ nút Tạm dừng / Câu tiếp theo, tự sang câu sau 4 s (20:35, Claude làm, Nam duyệt)** — thử 5 vòng trên Edge: tự sang sau 3,9–4,0 s, 0 lỗi JS.
+- [ ] **Cần làm để có số nộp (trước CP4):** chạy lại toàn bộ golden set (run-3 chính thức) + chấm tay, rồi viết spec §7 theo run-3. Backlog CP6: `misconception_tags` / `wrong_option_rationales` vào trace.
+- [x] **(20:40, Claude viết, Nam duyệt) spec §7 viết lại bằng số thật run-1/run-2/run-4-muc2 + sửa dòng trạng thái, §1, §4/§4b, §6, §8.** Còn lại: khảo sát thật (Tâm); commit + push. — Ghi chú cũ: `spec.md` §7 vẫn là bản cũ của Tâm ("0/60 chạy, còn thiếu run_eval") → Nam/Duy viết lại theo run-1/run-2; khảo sát thật (Tâm); commit + push.
+- [x] **Chốt quality bar** — **Nam chốt lúc 20:40** (spec §7 + §9), giữ nguyên ngưỡng Canvas; báo lại Duy. Bar:
   > Đạt khi ≥80% câu có trích dẫn khớp trang và đúng khái niệm · **≥90% answer key đúng** · ≤10% đề lộ đáp án · ≥70% câu đúng mức khó yêu cầu (người ngoài chấm) · 100% case ① và ③ xử lý đúng.
 - [ ] Viết `spec.md` §4:
   - lát cắt, non-goals

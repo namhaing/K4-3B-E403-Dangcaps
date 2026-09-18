@@ -4,6 +4,14 @@ const DEFAULT_API_URL = "http://localhost:8000";
 const LETTERS = ["A", "B", "C", "D"];
 const LEVEL_NAMES = { 1: "Nhận biết", 2: "Phân biệt", 3: "Áp dụng" };
 const DEMO_TOTAL = 5;
+// Chế độ đấu kiểu Kahoot: hiện ĐỀ trước (ẩn đáp án, đếm 3-2-1) → hiện đáp án + 10 s để trả lời →
+// cả hai đã chọn (bạn + đối thủ mô phỏng) thì hiện kết quả vòng, đếm ngược 4 s rồi tự sang câu (không có nút).
+// Đúng: 500–1000 điểm theo tốc độ trong 10 s. Sai / hết giờ: 0. Đối thủ mô phỏng: đúng-sai và tốc độ theo mẫu cố định.
+const BATTLE_READ_SECONDS = 3;
+const BATTLE_ANSWER_SECONDS = 10;
+const BATTLE_NEXT_SECONDS = 4;
+const OPPONENT_PATTERN = [true, false, true, true, false];
+const OPPONENT_PACE = [0.45, 0.6, 0.35, 0.55, 0.5]; // đối thủ trả lời sau 45%, 60%… của 10 s trả lời
 const DEMO_OPPONENTS = [
   { name: "Minh Anh", initials: "MA", rank: "Tân binh", color: "#d92736" },
   { name: "Quang Huy", initials: "QH", rank: "Nhà thám hiểm", color: "#6d4bd1" },
@@ -105,6 +113,8 @@ const rankingNav = document.querySelector("#ranking-nav");
 
 const state = {
   apiUrl: getApiUrl(),
+  learnerId: getLearnerId(),
+  progress: null,
   sessionId: null,
   question: null,
   selectedChoice: null,
@@ -121,11 +131,33 @@ const state = {
   playerScore: 0,
   opponentScore: 0,
   opponentLastCorrect: null,
+  opponentLastPoints: 0,
+  opponentLastSeconds: 0,
+  lastPoints: 0,
+  battleTimer: null,
+  battlePhase: null,       // "reading" | "answering" — của câu state.phaseQuestion
+  phaseQuestion: null,
+  answerStartedAt: 0,
+  opponentRound: null,     // {ms, correct, points} của đối thủ mô phỏng trong vòng hiện tại
+  opponentAnswered: false,
+  opponentRevealed: false,
+  roundTimer: null,
+  autoNextLeft: 0,
   matchSearchId: 0,
   profile: loadProfile(),
   battleRated: false,
   lastRatingDelta: 0,
 };
+
+// Mã học viên ẩn danh để backend nhớ tiến độ qua nhiều lượt (không tên, không email). Lưu trên trình duyệt này.
+function getLearnerId() {
+  let id = localStorage.getItem("solo-arena-learner");
+  if (!id || !/^[A-Za-z0-9-]{8,64}$/.test(id)) {
+    id = (crypto.randomUUID ? crypto.randomUUID() : `hv-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
+    localStorage.setItem("solo-arena-learner", id);
+  }
+  return id;
+}
 
 function loadProfile() {
   const fallback = { name: "Bạn", initials: "T", rating: 1240, wins: 8, matches: 13, streak: 2 };
@@ -248,6 +280,14 @@ function resetBattleState(enabled = false) {
   state.playerScore = 0;
   state.opponentScore = 0;
   state.opponentLastCorrect = null;
+  state.opponentLastPoints = 0;
+  state.opponentLastSeconds = 0;
+  state.lastPoints = 0;
+  state.opponentRound = null;
+  state.opponentAnswered = false;
+  state.opponentRevealed = false;
+  stopBattleTimer();
+  clearRoundTimers();
   state.battleRated = false;
   state.lastRatingDelta = 0;
   if (enabled && !state.opponent) {
@@ -314,6 +354,11 @@ function renderStart() {
         </aside>
       </div>
 
+      <section class="knowledge-card dashboard-card" id="knowledge-map" aria-labelledby="knowledge-title">
+        <div class="card-title-row"><div><p class="eyebrow">Chỗ bạn đang yếu · Day 1</p><h2 id="knowledge-title">Bản đồ kiến thức của bạn</h2></div></div>
+        <p class="knowledge-empty">Đang tải tiến độ…</p>
+      </section>
+
       <section class="ranking-preview dashboard-card">
         <div class="ranking-preview-heading">
           <div><p class="eyebrow">Bảng xếp hạng mùa 01</p><h2>Đường đua Solo Arena</h2></div>
@@ -335,6 +380,201 @@ function renderStart() {
   document.querySelector("#battle-button").addEventListener("click", startBattleMatch);
   document.querySelector("#demo-button").addEventListener("click", () => startDemoSession(false));
   document.querySelector("#open-ranking-button").addEventListener("click", renderRanking);
+  loadProgress();
+  focusApp();
+}
+
+const STATUS_ORDER = ["dang_yeu", "chua_du_du_lieu", "chua_luyen", "da_vung"];
+const STATUS_META = {
+  dang_yeu: { label: "Cần ôn", legend: "Cần ôn", cls: "weak" },
+  chua_du_du_lieu: { label: "Đang theo dõi", legend: "Chưa đủ dữ liệu", cls: "watch" },
+  chua_luyen: { label: "Chưa luyện", legend: "Chưa luyện", cls: "new" },
+  da_vung: { label: "Đã vững", legend: "Đã vững", cls: "solid" },
+};
+
+function recentDots(recent = []) {
+  if (!recent.length) return "";
+  return `<span class="recent-dots" aria-label="Kết quả các câu gần nhất">${recent
+    .map((ok) => `<i class="${ok ? "dot-ok" : "dot-bad"}" title="${ok ? "Đúng" : "Sai"}"></i>`).join("")}</span>`;
+}
+
+function slideRange(pages) {
+  return pages.length > 1 ? `Slide ${pages[0]}–${pages[pages.length - 1]}` : `Slide ${pages[0]}`;
+}
+
+// Bản đồ kiến thức: trạng thái 12 khái niệm Day 1, cộng dồn qua mọi lượt luyện của học viên này.
+async function loadProgress() {
+  const box = document.querySelector("#knowledge-map");
+  if (!box) return;
+  try {
+    state.progress = await request(`/learner/${encodeURIComponent(state.learnerId)}/progress`);
+  } catch {
+    box.querySelector(".knowledge-empty").textContent = "Chưa kết nối API nên chưa xem được tiến độ.";
+    return;
+  }
+  const p = state.progress;
+  const total = p.concepts.length;
+  const practiced = p.concepts.filter((c) => c.attempts > 0).length;
+  const count = (s) => p.summary[s] || 0;
+
+  // 1) Thanh tổng quan: nhìn là biết mình đang ở đâu trong buổi học
+  const bar = ["da_vung", "dang_yeu", "chua_du_du_lieu", "chua_luyen"]
+    .filter((s) => count(s))
+    .map((s) => `<span class="seg seg-${STATUS_META[s].cls}" style="flex:${count(s)}" title="${STATUS_META[s].legend}: ${count(s)}"></span>`).join("");
+  const legend = ["dang_yeu", "chua_du_du_lieu", "da_vung", "chua_luyen"]
+    .map((s) => `<span><i class="sw sw-${STATUS_META[s].cls}"></i>${STATUS_META[s].legend} <b>${count(s)}</b></span>`).join("");
+  const headline = practiced === 0
+    ? "Chưa đo được phần nào. Làm một lượt 5 câu để VLearn biết bạn đang ở đâu."
+    : count("dang_yeu")
+      ? `Bạn có <b>${count("dang_yeu")} phần cần ôn</b>. Bấm “Ôn lại kiến thức” để xem lại câu đã sai và đọc lại đúng trang slide.`
+      : `Đã luyện ${practiced}/${total} phần, chưa thấy phần nào cần ôn. Một phần chỉ được đánh giá khi đã làm ít nhất ${p.min_answers} câu.`;
+
+  // 2) Cần ôn ngay: đưa lên đầu, có nút ôn lại ngay
+  const weakCards = p.weak.map((c) => `
+    <article class="weak-card">
+      <div class="weak-card-head"><span class="map-pill pill-weak">Cần ôn</span>${recentDots(c.recent)}</div>
+      <h3>${escapeHtml(c.concept_name)}</h3>
+      <p>${escapeHtml(c.status_reason)} · ${slideRange(c.pages)}</p>
+      <div class="weak-actions">
+        <button class="button button-primary" type="button" data-review="${c.concept_id}">📖 Ôn lại kiến thức</button>
+        <button class="button button-secondary" type="button" data-drill="${c.concept_id}">🎯 Luyện 3 câu</button>
+      </div>
+    </article>`).join("");
+
+  // 3) Lộ trình buổi học: theo thứ tự slide, mỗi phần 1 dòng
+  const path = [...p.concepts].sort((a, b) => a.pages[0] - b.pages[0]).map((c, i) => {
+    const m = STATUS_META[c.status];
+    const action = c.attempts
+      ? `<button class="text-button" type="button" data-review="${c.concept_id}">Ôn lại →</button>`
+      : `<button class="text-button" type="button" data-drill="${c.concept_id}">Luyện thử →</button>`;
+    return `
+      <li class="path-row path-${m.cls}">
+        <span class="path-node" aria-hidden="true">${i + 1}</span>
+        <div class="path-body">
+          <strong>${escapeHtml(c.concept_name)}</strong>
+          <small>${slideRange(c.pages)} · ${escapeHtml(c.status_reason)}</small>
+        </div>
+        ${recentDots(c.recent)}
+        <span class="map-pill pill-${m.cls}">${m.label}</span>
+        ${action}
+      </li>`;
+  }).join("");
+
+  box.innerHTML = `
+    <div class="card-title-row"><div><p class="eyebrow">Chỗ bạn đang yếu · Day 1</p><h2 id="knowledge-title">Bản đồ kiến thức của bạn</h2></div>
+      <span class="session-time">${practiced}/${total} phần đã luyện</span></div>
+    <div class="map-overview">
+      <div class="map-bar" role="img" aria-label="Tỉ lệ các phần theo trạng thái">${bar || '<span class="seg seg-new" style="flex:1"></span>'}</div>
+      <div class="map-legend">${legend}</div>
+      <p class="map-headline">${headline}</p>
+    </div>
+    ${weakCards ? `<h3 class="map-section-title">Cần ôn ngay</h3><div class="weak-grid">${weakCards}</div>` : ""}
+    <h3 class="map-section-title">Lộ trình buổi học <small>theo thứ tự slide</small></h3>
+    <ol class="path-list">${path}</ol>
+    <p class="knowledge-note">Cộng dồn qua mọi lượt luyện trên trình duyệt này. Chỉ kết luận “cần ôn” khi đã làm ≥ ${p.min_answers} câu của phần đó; câu trả lời quá nhanh (đoán mò) không được tính. Chỉ bạn xem được.</p>`;
+
+  box.querySelectorAll("[data-review]").forEach((b) => b.addEventListener("click", () => renderReview(b.dataset.review)));
+  box.querySelectorAll("[data-drill]").forEach((b) => b.addEventListener("click", () => startSession(false, b.dataset.drill)));
+}
+
+// Màn "Ôn lại kiến thức": câu đã sai (đáp án đúng + giải thích + câu trích đã kiểm chéo) và nội dung slide gốc.
+// Không gọi AI — chỉ dùng lại nội dung đã được kiểm tra.
+async function renderReview(conceptId) {
+  if (state.busy) return;
+  setBusy(true);
+  renderLoading("Đang mở phần ôn tập", "Lấy lại các câu bạn đã làm và nội dung slide gốc…");
+  let r;
+  try {
+    r = await request(`/learner/${encodeURIComponent(state.learnerId)}/concept/${encodeURIComponent(conceptId)}/review`);
+  } catch (error) {
+    renderConnectionError(error.message);
+    return;
+  } finally {
+    setBusy(false);
+  }
+  const m = STATUS_META[r.status];
+  const mistakes = r.mistakes.length
+    ? r.mistakes.map((x, i) => `
+      <article class="mistake-card">
+        <p class="eyebrow">Câu sai ${i + 1} · Mức ${x.level}</p>
+        <h3>${escapeHtml(x.question)}</h3>
+        <ul class="mistake-options">
+          ${x.options.map((o, j) => `
+            <li class="${j === x.correct_choice ? "is-correct" : j === x.choice ? "is-wrong" : ""}">
+              <span class="option-key">${LETTERS[j]}</span><span>${escapeHtml(o)}</span>
+              <b>${j === x.correct_choice ? "Đáp án đúng" : j === x.choice ? "Bạn đã chọn" : ""}</b>
+            </li>`).join("")}
+        </ul>
+        <p class="mistake-explain">${escapeHtml(x.explanation)}</p>
+        <blockquote>“${escapeHtml(x.evidence_quote)}” <a class="slide-jump" href="#slide-${escapeHtml(x.page)}">— xem Slide ${escapeHtml(x.page)} ↓</a></blockquote>
+      </article>`).join("")
+    : `<p class="knowledge-empty">${r.attempts ? "Bạn chưa làm sai câu nào ở phần này." : "Bạn chưa làm câu nào ở phần này."}</p>`;
+  const keyPoints = r.quotes.length
+    ? `<ul class="key-points">${r.quotes.map((q) => `<li>“${escapeHtml(q.quote)}” <small>Slide ${escapeHtml(q.page)}</small></li>`).join("")}</ul>`
+    : "";
+  // Ảnh đúng trang slide (backend vẽ từ PDF gốc). Máy chủ không có PDF → ảnh lỗi → tự mở phần chữ.
+  const slides = r.slides.map((s) => `
+    <article class="slide-card" id="slide-${s.page}">
+      <div class="slide-head"><strong>Slide ${s.page}</strong>
+        <a class="slide-open" href="${state.apiUrl}/slide/${s.page}.png" target="_blank" rel="noopener">Mở lớn ↗</a></div>
+      <a class="slide-image-link" href="${state.apiUrl}/slide/${s.page}.png" target="_blank" rel="noopener">
+        <img class="slide-image" src="${state.apiUrl}/slide/${s.page}.png" alt="Slide ${s.page} của bài học" loading="lazy">
+      </a>
+      <details class="slide-details">
+        <summary>Xem chữ trên slide</summary>
+        <div class="slide-text">${escapeHtml(s.text)}</div>
+      </details>
+    </article>`).join("");
+
+  app.innerHTML = `
+    <section class="review-shell" aria-labelledby="review-title">
+      <p class="arena-breadcrumb"><button class="text-button" id="back-map" type="button">Bản đồ kiến thức</button> <span>/</span> Ôn lại</p>
+      <header class="review-header">
+        <div>
+          <span class="map-pill pill-${m.cls}">${m.label}</span>
+          <h1 id="review-title">${escapeHtml(r.concept_name)}</h1>
+          <p>${escapeHtml(r.status_reason)}${r.attempts ? ` · ${r.correct}/${r.attempts} câu đúng` : ""} ${recentDots(r.recent)}</p>
+        </div>
+        <button class="button button-primary button-large" id="drill-button" type="button">🎯 Luyện 3 câu phần này</button>
+      </header>
+
+      <div class="review-steps">
+        <section>
+          <h2><span>1</span> Xem lại câu bạn đã sai</h2>
+          ${mistakes}
+        </section>
+        <section>
+          <h2><span>2</span> Đọc lại đúng phần slide</h2>
+          ${keyPoints ? `<p class="review-sub">Ý chính đã dùng làm căn cứ cho các câu hỏi:</p>${keyPoints}` : ""}
+          ${slides}
+        </section>
+        <section class="review-cta">
+          <h2><span>3</span> Kiểm tra lại ngay</h2>
+          <p>Làm 3 câu mới chỉ về phần này. Kết quả được cộng vào bản đồ kiến thức.</p>
+          <div class="weak-actions">
+            <button class="button button-primary" id="drill-button-2" type="button">🎯 Luyện 3 câu phần này</button>
+            <button class="button button-secondary" id="back-map-2" type="button">← Quay lại bản đồ</button>
+          </div>
+        </section>
+      </div>
+    </section>`;
+  const toMap = () => {
+    renderStart();
+    window.setTimeout(() => document.querySelector("#knowledge-map")?.scrollIntoView({ behavior: "smooth" }), 150);
+  };
+  document.querySelectorAll(".slide-image").forEach((img) => img.addEventListener("error", () => {
+    const card = img.closest(".slide-card");
+    card.classList.add("no-image");
+    card.querySelector(".slide-details").open = true;
+  }));
+  document.querySelectorAll(".slide-jump").forEach((a) => a.addEventListener("click", (e) => {
+    e.preventDefault();
+    document.querySelector(a.getAttribute("href"))?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }));
+  document.querySelector("#back-map").addEventListener("click", toMap);
+  document.querySelector("#back-map-2").addEventListener("click", toMap);
+  document.querySelector("#drill-button").addEventListener("click", () => startSession(false, conceptId));
+  document.querySelector("#drill-button-2").addEventListener("click", () => startSession(false, conceptId));
   focusApp();
 }
 
@@ -447,7 +687,7 @@ function renderLoading(title = "Đang chuẩn bị câu hỏi", detail = "Hệ t
   focusApp();
 }
 
-async function startSession(battleMode = false) {
+async function startSession(battleMode = false, focusConcept = null) {
   if (state.busy) return;
   resetBattleState(battleMode === true);
   setBusy(true);
@@ -458,7 +698,7 @@ async function startSession(battleMode = false) {
   try {
     const payload = await request("/session/start", {
       method: "POST",
-      body: JSON.stringify({ lecture: "D01" }),
+      body: JSON.stringify({ lecture: "D01", learner_id: state.learnerId, ...(focusConcept ? { focus_concept: focusConcept } : {}) }),
     });
     state.sessionId = payload.session_id;
     state.demoMode = false;
@@ -467,9 +707,14 @@ async function startSession(battleMode = false) {
     state.feedback = null;
     state.nextQuestion = null;
     state.answered = [];
-    state.notice = payload.status === "no_evidence" && payload.question
+    const focus = focusConcept && payload.question
+      ? `Lượt ôn riêng: ${payload.question.total} câu về “${payload.question.concept_name}”. Kết quả được cộng vào bản đồ kiến thức.`
+      : (payload.focus_weak || []).length
+        ? `Lượt này ưu tiên ôn lại phần bạn đang yếu: ${payload.focus_weak.join(", ")}.`
+        : "";
+    state.notice = [focus, payload.status === "no_evidence" && payload.question
       ? "Một chủ đề chưa đủ căn cứ nên hệ thống đã chuyển sang chủ đề khác."
-      : "";
+      : ""].filter(Boolean).join(" ");
 
     if (!state.question) {
       renderNoEvidence();
@@ -546,6 +791,7 @@ function renderMatchmaking() {
 function renderQuestion() {
   const q = state.question;
   if (!q) return;
+  if (state.battleMode && !state.feedback) syncBattlePhase();
   const progress = Math.max(0, Math.min(100, ((q.index - 1) / q.total) * 100));
 
   app.innerHTML = `
@@ -564,6 +810,7 @@ function renderQuestion() {
       ${state.notice ? `<div class="notice"><strong aria-hidden="true">!</strong><span>${escapeHtml(state.notice)}</span></div>` : ""}
 
       <article class="question-card">
+        ${state.battleMode && !state.feedback ? countdownTemplate() : ""}
         <div class="question-meta">
           <span class="concept-label">${escapeHtml(q.concept_name)}</span>
           <span class="level-badge">Mức ${q.level} · ${escapeHtml(LEVEL_NAMES[q.level] || "Luyện tập")}</span>
@@ -571,7 +818,9 @@ function renderQuestion() {
         <h1 class="question-title" id="question-title">${escapeHtml(q.question)}</h1>
 
         <div class="options" role="group" aria-label="Các lựa chọn">
-          ${q.options.map((option, index) => optionTemplate(option, index)).join("")}
+          ${state.battleMode && state.battlePhase === "reading" && !state.feedback
+            ? `<div class="options-waiting"><strong id="reveal-count">${BATTLE_READ_SECONDS}</strong><span>Đáp án sắp hiện — đọc kỹ đề</span></div>`
+            : q.options.map((option, index) => optionTemplate(option, index)).join("")}
         </div>
 
         ${state.feedback ? feedbackTemplate() : ""}
@@ -579,28 +828,185 @@ function renderQuestion() {
         <div class="question-actions">
           <div class="minor-actions">
             ${state.feedback ? "" : `
-              <button class="text-button" id="skip-button" type="button">Đổi câu khác</button>
+              ${q.skips_left === 0
+                ? `<button class="text-button" id="skip-button" type="button" disabled title="Mỗi lượt được đổi tối đa 2 câu">Hết lượt đổi câu</button>`
+                : `<button class="text-button" id="skip-button" type="button">Đổi câu khác${Number.isInteger(q.skips_left) ? ` (còn ${q.skips_left})` : ""}</button>`}
               <button class="text-button danger" id="report-button" type="button">Báo câu sai</button>`}
           </div>
           ${state.feedback
-            ? `<button class="button button-primary" id="continue-button" type="button">${state.feedback.done ? "Xem kết quả" : state.nextQuestion ? "Câu tiếp theo" : "Xem kết quả"} <span aria-hidden="true">→</span></button>`
-            : `<button class="button button-primary" id="answer-button" type="button" ${state.selectedChoice === null ? "disabled" : ""}>Kiểm tra đáp án</button>`}
+            ? state.battleMode
+              ? battleNextTemplate()
+              : `<button class="button button-primary" id="continue-button" type="button">${state.feedback.done ? "Xem kết quả" : state.nextQuestion ? "Câu tiếp theo" : "Xem kết quả"} <span aria-hidden="true">→</span></button>`
+            : state.battleMode
+              ? `<span class="battle-hint">${state.battlePhase === "reading" ? "Đáp án hiện sau vài giây" : "Chạm vào đáp án là nộp · càng nhanh càng nhiều điểm"}</span>`
+              : `<button class="button button-primary" id="answer-button" type="button" ${state.selectedChoice === null ? "disabled" : ""}>Kiểm tra đáp án</button>`}
         </div>
       </article>
     </section>`;
 
   if (state.feedback) {
-    document.querySelector("#continue-button").addEventListener("click", continueAfterFeedback);
+    document.querySelector("#continue-button")?.addEventListener("click", continueAfterFeedback);   // chế độ đấu: không có nút, tự sang câu
   } else {
     document.querySelectorAll(".option").forEach((button) => {
       button.addEventListener("click", () => selectChoice(Number(button.dataset.choice)));
     });
-    document.querySelector("#answer-button").addEventListener("click", submitAnswer);
+    document.querySelector("#answer-button")?.addEventListener("click", () => submitAnswer());
     document.querySelector("#skip-button").addEventListener("click", skipQuestion);
     document.querySelector("#report-button").addEventListener("click", () => reportDialog.showModal());
+    if (state.battleMode) startBattleTimer();
   }
 
   focusApp();
+}
+
+function battleLimitMs() {
+  return BATTLE_ANSWER_SECONDS * 1000;
+}
+
+// Câu mới (khác object đang theo dõi) → bắt đầu giai đoạn đọc. Vẽ lại cùng câu thì giữ nguyên giai đoạn.
+function syncBattlePhase() {
+  if (state.phaseQuestion === state.question) return;
+  state.phaseQuestion = state.question;
+  state.battlePhase = "reading";
+  state.answerStartedAt = 0;
+  state.opponentRound = null;
+  state.opponentAnswered = false;
+  state.opponentRevealed = false;
+  clearRoundTimers();
+}
+
+// Hiện đáp án, bắt đầu 10 s. Đối thủ mô phỏng của vòng này được định trước (mẫu cố định), chỉ lộ khi cả hai đã chọn.
+function startAnswerPhase() {
+  if (!state.battleMode || state.battlePhase !== "reading" || state.feedback) return;
+  const roundIndex = state.answered.length;
+  const ms = OPPONENT_PACE[roundIndex % OPPONENT_PACE.length] * battleLimitMs();
+  const correct = OPPONENT_PATTERN[roundIndex % OPPONENT_PATTERN.length];
+  state.opponentRound = { ms, correct, points: battlePoints(correct, ms, battleLimitMs()) };
+  state.battlePhase = "answering";
+  state.answerStartedAt = performance.now();
+  renderQuestion();
+}
+
+function opponentStatusText() {
+  if (state.feedback) return state.opponentRevealed ? "" : "đang chọn…";
+  if (state.battlePhase === "reading") return "đang đọc đề…";
+  return state.opponentAnswered ? "đã chọn ✓" : "đang chọn…";
+}
+
+// Bạn đã chọn → chờ đối thủ chọn xong (nếu chưa) → lộ kết quả đối thủ → tự sang câu sau BATTLE_NEXT_SECONDS.
+function finishBattleRound() {
+  clearRoundTimers();
+  const round = state.opponentRound;
+  const waitMs = round ? Math.max(0, round.ms - (performance.now() - state.answerStartedAt)) : 0;
+  state.roundTimer = setTimeout(revealOpponent, waitMs);
+}
+
+function revealOpponent() {
+  clearRoundTimers();
+  if (!onFeedbackScreen()) return;   // đã rời màn (xem BXH, thoát…) → không tự chuyển
+  const round = state.opponentRound || { ms: 0, correct: false, points: 0 };
+  state.opponentAnswered = true;
+  state.opponentRevealed = true;
+  state.opponentLastCorrect = round.correct;
+  state.opponentLastSeconds = Math.round(round.ms / 1000);
+  state.opponentLastPoints = round.points;
+  state.opponentScore += round.points;
+  state.autoNextLeft = BATTLE_NEXT_SECONDS;
+  renderQuestion();
+  state.roundTimer = setInterval(() => {
+    if (!onFeedbackScreen()) {
+      clearRoundTimers();
+      return;
+    }
+    state.autoNextLeft -= 1;
+    const count = document.querySelector("#auto-next-count");
+    if (count) count.textContent = `${state.autoNextLeft}s`;
+    if (state.autoNextLeft <= 0) {
+      clearRoundTimers();
+      continueAfterFeedback();
+    }
+  }, 1000);
+}
+
+function clearRoundTimers() {
+  clearTimeout(state.roundTimer);
+  clearInterval(state.roundTimer);
+  state.roundTimer = null;
+}
+
+function onFeedbackScreen() {
+  return Boolean(state.feedback && document.querySelector(".feedback"));
+}
+
+// Chế độ đấu không có nút ở màn kết quả vòng: chỉ báo đang chờ đối thủ, rồi đếm ngược tự sang câu.
+function battleNextTemplate() {
+  if (!state.opponentRevealed) {
+    return `<span class="battle-next-status">Đang chờ ${escapeHtml(state.opponent.name)} chọn…</span>`;
+  }
+  const label = state.feedback.done || !state.nextQuestion ? "Xem kết quả" : "Câu tiếp theo";
+  return `<span class="battle-next-status">${label} sau <strong id="auto-next-count">${state.autoNextLeft}s</strong></span>`;
+}
+
+function battlePoints(correct, answerMs, limitMs) {
+  return correct ? Math.round(1000 * (1 - Math.min(answerMs, limitMs) / limitMs / 2)) : 0;
+}
+
+function countdownTemplate() {
+  const reading = state.battlePhase === "reading";
+  return `
+    <div class="countdown ${reading ? "is-reading" : ""}" id="countdown" role="timer"
+         aria-label="${reading ? "Thời gian đọc đề" : "Thời gian trả lời và điểm nếu trả lời đúng lúc này"}">
+      <div class="countdown-track">
+        <div class="countdown-fill" id="countdown-fill"></div>
+        <span class="countdown-points" id="countdown-points">${reading ? "Đọc đề" : "+1000"}</span>
+      </div>
+      <span class="countdown-text" id="countdown-text">${reading ? BATTLE_READ_SECONDS : BATTLE_ANSWER_SECONDS}s</span>
+    </div>`;
+}
+
+// Tính theo mốc thời gian (questionStartedAt / answerStartedAt) nên vẽ lại màn không làm đồng hồ chạy lại từ đầu.
+function startBattleTimer() {
+  stopBattleTimer();
+  const tick = () => {
+    const countdown = document.querySelector("#countdown");
+    if (!countdown) {            // đã rời màn câu hỏi (đổi câu, thoát, xem BXH…) → dừng, không tự nộp
+      stopBattleTimer();
+      return;
+    }
+    const now = performance.now();
+    const reading = state.battlePhase === "reading";
+    const limit = reading ? BATTLE_READ_SECONDS * 1000 : battleLimitMs();
+    const elapsed = now - (reading ? state.questionStartedAt : state.answerStartedAt);
+    const left = Math.max(0, limit - elapsed);
+    document.querySelector("#countdown-fill").style.width = `${(left / limit) * 100}%`;
+    document.querySelector("#countdown-text").textContent = `${Math.ceil(left / 1000)}s`;
+    if (reading) {
+      document.querySelector("#countdown-points").textContent = `Đọc đề · đáp án hiện sau ${Math.ceil(left / 1000)}s`;
+      const reveal = document.querySelector("#reveal-count");
+      if (reveal) reveal.textContent = String(Math.max(1, Math.ceil(left / 1000)));
+      if (left <= 0) startAnswerPhase();
+      return;
+    }
+    if (!state.opponentAnswered && state.opponentRound && elapsed >= state.opponentRound.ms) {
+      state.opponentAnswered = true;
+      const status = document.querySelector("#opponent-status");
+      if (status) status.textContent = opponentStatusText();
+    }
+    document.querySelector("#countdown-points").textContent = `+${battlePoints(true, elapsed, limit)}`;
+    countdown.classList.toggle("is-urgent", left <= 3000);
+    if (left <= 0) {
+      stopBattleTimer();
+      if (reportDialog.open) reportDialog.close();
+      submitAnswer(true);
+    }
+  };
+  tick();
+  state.battleTimer = setInterval(tick, 100);
+}
+
+function stopBattleTimer() {
+  clearInterval(state.battleTimer);
+  state.battleTimer = null;
 }
 
 function battleBoardTemplate() {
@@ -614,7 +1020,7 @@ function battleBoardTemplate() {
       </div>
       <div class="battle-round"><span>Vòng ${round}/${DEMO_TOTAL}</span><strong>VS</strong><small>Đối thủ mô phỏng</small></div>
       <div class="fighter opponent-fighter">
-        <div><small>${escapeHtml(opponent.name)} · ${escapeHtml(opponent.rank)}</small><strong>${state.opponentScore} điểm</strong></div>
+        <div><small>${escapeHtml(opponent.name)} · ${escapeHtml(opponent.rank)}</small><strong>${state.opponentScore} điểm</strong><em class="opponent-status" id="opponent-status">${opponentStatusText()}</em></div>
         <span class="fighter-avatar" style="--avatar-color:${escapeHtml(opponent.color)}">${escapeHtml(opponent.initials)}</span>
       </div>
     </section>`;
@@ -636,7 +1042,7 @@ function optionTemplate(option, index) {
   }
 
   return `
-    <button class="${className}" type="button" data-choice="${index}" aria-pressed="${selected}" ${state.feedback ? "disabled" : ""}>
+    <button class="${className}" type="button" data-choice="${index}" aria-pressed="${selected}" ${state.feedback || (state.battleMode && state.battlePhase === "reading") ? "disabled" : ""}>
       <span class="option-key">${LETTERS[index]}</span>
       <span class="option-text">${escapeHtml(option)}</span>
       <span class="option-indicator" aria-hidden="true">${indicator}</span>
@@ -645,38 +1051,52 @@ function optionTemplate(option, index) {
 
 function feedbackTemplate() {
   const feedback = state.feedback;
-  const title = feedback.correct ? "Chính xác" : "Chưa đúng — xem lại căn cứ";
+  const title = feedback.timed_out ? "Hết giờ — xem đáp án đúng" : feedback.correct ? "Chính xác" : "Chưa đúng — xem lại căn cứ";
   return `
     <section class="feedback ${feedback.correct ? "correct" : "incorrect"}" aria-live="polite">
       <div class="feedback-heading">
-        <h3>${title}</h3>
+        <h3>${title}${state.battleMode ? ` <span class="points-badge">+${state.lastPoints} điểm</span>` : ""}</h3>
         <span class="status-badge">Trang ${escapeHtml(feedback.page)}</span>
       </div>
       <p>${escapeHtml(feedback.explanation)}</p>
-      ${state.battleMode ? `<div class="opponent-update ${state.opponentLastCorrect ? "opponent-correct" : "opponent-wrong"}">${escapeHtml(state.opponent.name)} ${state.opponentLastCorrect ? "cũng trả lời đúng · +100 điểm" : "đã trả lời sai vòng này"}</div>` : ""}
+      ${!state.battleMode ? "" : !state.opponentRevealed
+        ? `<div class="opponent-update">Đang chờ ${escapeHtml(state.opponent.name)} chọn…</div>`
+        : `<div class="opponent-update ${state.opponentLastCorrect ? "opponent-correct" : "opponent-wrong"}">${escapeHtml(state.opponent.name)} ${state.opponentLastCorrect ? `trả lời đúng sau ${state.opponentLastSeconds} giây · +${state.opponentLastPoints} điểm` : "đã trả lời sai vòng này · +0 điểm"}</div>`}
     </section>
     <aside class="source-card">
-      <div class="source-heading"><strong>Nguồn trong bài học</strong><span>Slide ${escapeHtml(feedback.page)}</span></div>
+      <div class="source-heading"><strong>Nguồn trong bài học</strong><span>Slide ${escapeHtml(feedback.page)}${state.demoMode ? "" : ` · <a class="slide-open-inline" href="${state.apiUrl}/slide/${encodeURIComponent(feedback.page)}.png" target="_blank" rel="noopener">Xem slide ↗</a>`}</span></div>
       <blockquote>“${escapeHtml(feedback.evidence_quote)}”</blockquote>
     </aside>`;
 }
 
 function selectChoice(index) {
   if (state.feedback || state.busy) return;
+  if (state.battleMode && state.battlePhase === "reading") return;   // đang đọc đề: đáp án còn khoá
   state.selectedChoice = index;
+  if (state.battleMode) {   // chế độ đấu: chạm là nộp (kiểu Quizizz), mỗi giây đều có giá
+    document.querySelector(`[data-choice="${index}"]`)?.setAttribute("aria-pressed", "true");
+    submitAnswer();
+    return;
+  }
   renderQuestion();
   const selected = document.querySelector(`[data-choice="${index}"]`);
   selected?.focus();
 }
 
-async function submitAnswer() {
-  if (state.selectedChoice === null || state.busy) return;
+// timedOut: chế độ đấu hết giờ. Chưa chọn gì thì gửi choice = -1 + timed_out → 0 điểm, API không tính vào bản đồ.
+async function submitAnswer(timedOut = false) {
+  if ((state.selectedChoice === null && !timedOut) || state.busy) return;
+  stopBattleTimer();
   setBusy(true);
-  const choice = state.selectedChoice;
-  const answerMs = Math.max(0, Math.round(performance.now() - state.questionStartedAt));
+  const choice = state.selectedChoice ?? -1;
+  // Chế độ đấu: tính từ lúc HIỆN ĐÁP ÁN (dùng cho điểm và cho luật "< 3 s = đoán mò" — chọn trước khi kịp đọc đáp án).
+  const answerMs = Math.max(0, Math.round(performance.now() - (state.battleMode ? state.answerStartedAt : state.questionStartedAt)));
   const answerButton = document.querySelector("#answer-button");
-  answerButton.disabled = true;
-  answerButton.textContent = "Đang kiểm tra…";
+  if (answerButton) {
+    answerButton.disabled = true;
+    answerButton.textContent = "Đang kiểm tra…";
+  }
+  let failed = false;
 
   try {
     if (state.demoMode) {
@@ -690,13 +1110,15 @@ async function submitAnswer() {
         evidence_quote: state.question._evidence_quote,
         done: state.answered.length + 1 >= DEMO_TOTAL,
         status: "ok",
+        timed_out: choice === -1,
       };
       state.answered.push({ ...state.question, correct });
-      updateBattleScore(correct);
+      updateBattleScore(correct, answerMs);
       state.demoCursor += 1;
       state.nextQuestion = state.feedback.done ? null : demoQuestion();
       state.notice = "";
       renderQuestion();
+      if (state.battleMode) finishBattleRound();
       return;
     }
     const payload = await request("/answer", {
@@ -706,36 +1128,47 @@ async function submitAnswer() {
         question_id: state.question.question_id,
         choice,
         answer_ms: answerMs,
+        timed_out: choice === -1,
       }),
     });
-    state.feedback = payload;
+    state.feedback = { ...payload, timed_out: choice === -1 };
     state.nextQuestion = payload.next_question;
     state.answered.push({ ...state.question, correct: payload.correct });
-    updateBattleScore(payload.correct);
+    updateBattleScore(payload.correct, answerMs);
     state.notice = payload.status === "no_evidence" && payload.next_question
       ? "Chủ đề dự kiến tiếp theo chưa đủ căn cứ; hệ thống đã chọn một chủ đề khác."
       : "";
     renderQuestion();
+    if (state.battleMode) finishBattleRound();
   } catch (error) {
     showToast(`Chưa gửi được đáp án: ${error.message}`);
-    answerButton.disabled = false;
-    answerButton.textContent = "Kiểm tra đáp án";
+    if (answerButton) {
+      answerButton.disabled = false;
+      answerButton.textContent = "Kiểm tra đáp án";
+    }
+    failed = true;
   } finally {
     setBusy(false);
   }
+  // Chế độ đấu: cho chạm lại, đồng hồ chạy tiếp (không cộng lại giờ). Hết giờ mà gửi lỗi thì không tự gửi lại liên tục —
+  // học viên chạm một đáp án để thử lại.
+  if (failed && state.battleMode && !timedOut) {
+    state.selectedChoice = null;
+    renderQuestion();
+  }
 }
 
-function updateBattleScore(playerCorrect) {
+// Chỉ cộng điểm của bạn; điểm đối thủ cộng khi lộ kết quả (revealOpponent), sau khi cả hai đã chọn.
+function updateBattleScore(playerCorrect, answerMs) {
   if (!state.battleMode) return;
-  if (playerCorrect) state.playerScore += 100;
-  const roundIndex = state.answered.length - 1;
-  const opponentPattern = [true, false, true, true, false];
-  state.opponentLastCorrect = opponentPattern[roundIndex % opponentPattern.length];
-  if (state.opponentLastCorrect) state.opponentScore += 100;
+  state.lastPoints = battlePoints(playerCorrect, answerMs, battleLimitMs());
+  state.playerScore += state.lastPoints;
+  state.opponentRevealed = false;
 }
 
 async function continueAfterFeedback() {
   if (state.busy) return;
+  clearRoundTimers();
   if (state.feedback.done || !state.nextQuestion) {
     await loadResult();
     return;
@@ -773,7 +1206,9 @@ async function skipQuestion() {
     state.feedback = null;
     state.notice = payload.status === "no_evidence" && payload.question
       ? "Không tạo được câu thay thế cho chủ đề này; hệ thống đã chuyển sang chủ đề khác."
-      : "";
+      : payload.question && payload.question.skips_left === 0
+        ? "Bạn đã dùng hết lượt đổi câu của lượt này. Cứ chọn đáp án bạn thấy đúng nhất — sai cũng giúp biết bạn cần ôn gì."
+        : "";
     if (!state.question) {
       renderNoEvidence();
       return;
@@ -868,28 +1303,14 @@ function renderResult(result) {
     ? "Bạn đã trả lời đúng toàn bộ câu hỏi trong lượt này."
     : "Kết quả này giúp bạn chọn một điểm bắt đầu cụ thể cho lần ôn tiếp theo.";
 
-  const battleOutcome = state.playerScore > state.opponentScore
-    ? { title: "Bạn chiến thắng!", label: "Thắng trận", className: "win" }
-    : state.playerScore < state.opponentScore
-      ? { title: "Đối thủ thắng sát nút", label: "Kết thúc trận", className: "loss" }
-      : { title: "Trận đấu hòa", label: "Ngang tài", className: "draw" };
+  const battleOutcome = getBattleOutcome();
   updateProfileAfterBattle();
   const resultTitle = state.battleMode ? battleOutcome.title : "Bạn đã về đích.";
 
   app.innerHTML = `
     <section class="result-card" aria-labelledby="result-title">
       <div class="result-kicker" aria-hidden="true">✓</div>
-      ${state.battleMode ? `
-        <div class="battle-result ${battleOutcome.className}">
-          <div><span class="fighter-avatar">T</span><strong>${state.playerScore}</strong><small>Bạn</small></div>
-          <p><span>${battleOutcome.label}</span><b>VS</b><small>Trận thử nghiệm</small></p>
-          <div><span class="fighter-avatar" style="--avatar-color:${escapeHtml(state.opponent.color)}">${escapeHtml(state.opponent.initials)}</span><strong>${state.opponentScore}</strong><small>${escapeHtml(state.opponent.name)}</small></div>
-        </div>
-        <div class="rating-change ${state.lastRatingDelta >= 0 ? "positive" : "negative"}">
-          <span>${state.lastRatingDelta >= 0 ? "+" : ""}${state.lastRatingDelta} rating</span>
-          <strong>${state.profile.rating}</strong>
-          <small>${rankTier(state.profile.rating)} · ${state.profile.streak} chuỗi thắng</small>
-        </div>` : ""}
+      ${state.battleMode ? battleResultTemplate(battleOutcome) : ""}
       <div class="result-heading">
         <div>
           <p class="eyebrow">${state.battleMode ? "Hoàn thành trận Solo" : "Hoàn thành lượt luyện"}</p>
@@ -921,19 +1342,52 @@ function renderResult(result) {
         </aside>`}
 
       <button class="button button-primary button-large button-full" id="restart-button" type="button">${state.battleMode ? "Ghép trận khác" : "Luyện một lượt mới"}</button>
+      ${state.demoMode ? "" : `<button class="text-button knowledge-link" id="map-button" type="button">Xem bản đồ kiến thức của bạn →</button>`}
     </section>`;
+  document.querySelector("#map-button")?.addEventListener("click", () => {
+    renderStart();
+    window.setTimeout(() => document.querySelector("#knowledge-map")?.scrollIntoView({ behavior: "smooth" }), 120);
+  });
   document.querySelector("#restart-button").addEventListener("click", state.battleMode ? startBattleMatch : state.demoMode ? () => startDemoSession(false) : () => startSession(false));
   focusApp();
 }
 
+function getBattleOutcome() {
+  return state.playerScore > state.opponentScore
+    ? { title: "Bạn chiến thắng!", label: "Thắng trận", className: "win" }
+    : state.playerScore < state.opponentScore
+      ? { title: "Đối thủ thắng sát nút", label: "Kết thúc trận", className: "loss" }
+      : { title: "Trận đấu hòa", label: "Ngang tài", className: "draw" };
+}
+
+function battleResultTemplate(outcome) {
+  return `
+    <div class="battle-result ${outcome.className}">
+      <div><span class="fighter-avatar">T</span><strong>${state.playerScore}</strong><small>Bạn</small></div>
+      <p><span>${outcome.label}</span><b>VS</b><small>Trận thử nghiệm</small></p>
+      <div><span class="fighter-avatar" style="--avatar-color:${escapeHtml(state.opponent.color)}">${escapeHtml(state.opponent.initials)}</span><strong>${state.opponentScore}</strong><small>${escapeHtml(state.opponent.name)}</small></div>
+    </div>
+    <div class="rating-change ${state.lastRatingDelta >= 0 ? "positive" : "negative"}">
+      <span>${state.lastRatingDelta >= 0 ? "+" : ""}${state.lastRatingDelta} rating</span>
+      <strong>${state.profile.rating}</strong>
+      <small>${rankTier(state.profile.rating)} · ${state.profile.streak} chuỗi thắng</small>
+    </div>`;
+}
+
+// Trận đấu vẫn có tỉ số + rating dù lượt "chưa đủ dữ liệu" (đấu thưởng chọn nhanh nên hay có ≥ 3 câu < 3 s);
+// chỉ phần kết luận chỗ cần ôn là không đưa ra.
 function renderLowConfidence(result) {
   const answered = result.items?.length || state.answered.length;
+  const outcome = state.battleMode ? getBattleOutcome() : null;
+  if (state.battleMode) updateProfileAfterBattle();
   app.innerHTML = `
     <section class="state-card" aria-labelledby="state-title">
-      <div class="state-icon" aria-hidden="true">?</div>
-      <p class="eyebrow">Chưa đủ dữ liệu</p>
-      <h1 id="state-title">Chưa nên kết luận vội.</h1>
-      <p>Bạn đã hoàn thành ${answered} câu, nhưng lượt này chưa có đủ tín hiệu ổn định để xác định phần cần ôn. Kết quả không được dùng để đánh giá năng lực của bạn.</p>
+      ${state.battleMode ? battleResultTemplate(outcome) : `<div class="state-icon" aria-hidden="true">?</div>`}
+      <p class="eyebrow">${state.battleMode ? "Bản đồ chỗ yếu: chưa đủ dữ liệu" : "Chưa đủ dữ liệu"}</p>
+      <h1 id="state-title">${state.battleMode ? escapeHtml(outcome.title) : "Chưa nên kết luận vội."}</h1>
+      <p>${state.battleMode
+        ? `Trận vẫn tính điểm và rating. Nhưng nhiều câu được chọn chưa tới 3 giây sau khi hiện đáp án (hoặc hết giờ), nên chưa đủ tín hiệu để xác định phần cần ôn — bản đồ chỗ yếu không kết luận từ trận này.`
+        : `Bạn đã hoàn thành ${answered} câu, nhưng lượt này chưa có đủ tín hiệu ổn định để xác định phần cần ôn. Kết quả không được dùng để đánh giá năng lực của bạn.`}</p>
       <button class="button button-primary button-large" id="restart-button" type="button">Làm lượt mới</button>
     </section>`;
   document.querySelector("#restart-button").addEventListener("click", state.battleMode ? startBattleMatch : state.demoMode ? () => startDemoSession(false) : () => startSession(false));

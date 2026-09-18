@@ -21,6 +21,15 @@ META_OPTION = re.compile(
     r"|\b(các|những)\s+(đáp án|phương án|lựa chọn|ý)\s+(trên|còn lại)\b",
     re.I,
 )
+# Mức 2 kiểu "mô tả → gọi tên": "…hiện tượng này được gọi là gì?", "Họ nên chọn loại AI nào?" — thật ra là mức 1.
+# run-2: 7/11 câu mức 2 bị lỗi này; sau khi sửa prompt (run-3-muc2) vẫn còn 5/12 → chặn bằng code để AI sinh lại.
+# Không bắt "X khác Y ở điểm nào?" / "Phát biểu nào đúng?" / "Điểm khác biệt … là gì?" (câu phân biệt hợp lệ).
+NAMING = re.compile(
+    r"\b(khái niệm|thuật ngữ|hiện tượng|loại|nhóm|công nghệ|tầng|bước|kỹ thuật|phương pháp)(\s+ai)?\s+(nào|gì)\b"
+    r"|\b(được gọi là|gọi là|có tên là)\s+gì\b",
+    re.I,
+)
+SHORT_OPTION_WORDS = 3  # cả 4 lựa chọn chỉ là tên khái niệm ("Machine Learning", "LLM"…) → đề đang hỏi tên
 
 
 def normalize(text: str) -> str:
@@ -83,5 +92,13 @@ def validate(q: dict, *, concept: dict, level: int, pages: dict) -> list[str]:
         correct = normalize(opts[q["answer"]])
         if len(correct) >= MIN_LEAK_CHARS and correct in normalize(q["question"]):
             errors.append("đề lộ đáp án (lựa chọn đúng nằm nguyên văn trong đề)")
+
+    # Mức 2 phải bắt học viên phân biệt, không chỉ nhớ tên. Lỗi ghi rõ cách sửa vì được gửi lại cho AI khi sinh lại.
+    if level == 2 and not errors:
+        naming = NAMING.search(normalize(q["question"]))
+        if naming or all(len(o.split()) <= SHORT_OPTION_WORDS for o in opts):
+            hint = f"'{naming.group(0)}'" if naming else "4 lựa chọn chỉ là tên khái niệm"
+            errors.append(f"mức 2 đang hỏi dạng mô tả → gọi tên ({hint}); viết lại thành so sánh 2 khái niệm gần nhau "
+                          "('X khác Y ở điểm nào?') hoặc 'phát biểu nào đúng' với 4 phát biểu đầy đủ, mỗi phát biểu sai là một hiểu nhầm")
 
     return errors

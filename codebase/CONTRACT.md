@@ -67,23 +67,26 @@ Base URL: `http://localhost:8000`. **Bật CORS** cho web.
 **Question (dạng câu hỏi gửi xuống web)**
 ```json
 {"question_id": "q3", "index": 3, "total": 5, "concept_name": "Các tầng AI", "level": 2, "page": 8,
- "question": "...", "options": ["...", "...", "...", "..."]}
+ "question": "...", "options": ["...", "...", "...", "..."], "skips_left": 2}
 ```
 
 | Endpoint | Gửi lên | Nhận về |
 |---|---|---|
-| `POST /session/start` | `{"lecture": "D01"}` | `{"session_id": "abc", "question": Question, "status": "ok"}` |
-| `POST /answer` | `{"session_id", "question_id", "choice": 1, "answer_ms": 4200}` | `{"correct": false, "correct_choice": 0, "explanation", "page", "evidence_quote", "next_question": Question \| null, "done": false, "status"}` |
+| `POST /session/start` | `{"lecture": "D01", "learner_id": "uuid-cua-trinh-duyet", "focus_concept": "ai_types" (tuỳ chọn)}` | `{"session_id": "abc", "question": Question, "status": "ok", "focus_weak": ["Tên khái niệm đang yếu", …]}` |
+| `POST /answer` | `{"session_id", "question_id", "choice": 1, "answer_ms": 4200, "timed_out": false}` — chế độ đấu hết giờ chưa chọn: `choice = -1`, `timed_out = true` | `{"correct": false, "correct_choice": 0, "explanation", "page", "evidence_quote", "next_question": Question \| null, "done": false, "status"}` |
 | `POST /skip` | `{"session_id", "question_id"}` | `{"question": Question, "status"}` |
 | `POST /report` | `{"session_id", "question_id", "reason": "wrong_answer" \| "unclear" \| "not_in_slide"}` | `{"question": Question, "status": "reported"}` |
 | `GET /session/{id}/result` | — | `{"items": [{"concept_name", "level", "correct"}], "review_concept", "page", "evidence_quote", "status"}` |
 | `GET /health` | — | `{"ok": true, "concepts": 12, "pages": 29}` |
+| `GET /learner/{learner_id}/progress` | — | `{"lecture", "min_answers": 3, "summary": {"dang_yeu": n, "chua_du_du_lieu": n, "chua_luyen": n, "da_vung": n}, "concepts": [{"concept_id", "concept_name", "pages", "status", "status_label", "attempts", "correct", "recent": [true, false…], "status_reason": "Sai 2/3 câu gần nhất"}], "weak": [...]}` |
+| `GET /learner/{learner_id}/concept/{concept_id}/review` | — | `{"concept_name", "status", "status_label", "status_reason", "attempts", "correct", "recent", "mistakes": [{"question", "options", "choice", "correct_choice", "explanation", "evidence_quote", "page", "level", "at"}], "quotes": [{"page", "quote"}], "slides": [{"page", "text"}]}` · 404 nếu khái niệm lạ |
+| `GET /slide/{page}.png` | — | Ảnh PNG đúng trang slide (vẽ từ PDF gốc trên máy chạy server, giữ trong RAM). **404** nếu máy không có PDF (`data/vlearn-pack/slides/d1-slide-hackathon.pdf`, hoặc biến môi trường `SLIDE_PDF`) hoặc trang không tồn tại → web tự hiện chữ thay ảnh |
 
 - `done = true` nghĩa là đã xong 5 câu, web chuyển sang gọi `/result`.
 - `done = false` và `next_question = null` nghĩa là không khái niệm nào còn ra được câu có căn cứ (`status = no_evidence`). Web hiện thông báo và cho xem kết quả.
 - `status = no_evidence` **kèm** `next_question` khác null nghĩa là AI không ra câu cho khái niệm định hỏi, API đã **tự đổi sang khái niệm khác**. Web hiện dòng thông báo phía trên câu mới.
 - `review_concept = null` với `status = ok` nghĩa là **đúng hết**, không có chủ đề cần ôn. Web không được bịa chủ đề.
-- Lỗi HTTP: `404` khi không có lượt luyện (session lạ), `409` khi `question_id` không phải câu đang hỏi (ví dụ câu đã bị skip/report), `400` khi buổi không hỗ trợ.
+- Lỗi HTTP: `404` khi không có lượt luyện (session lạ), `409` khi `question_id` không phải câu đang hỏi (ví dụ câu đã bị skip/report) **hoặc** khi `/skip` đã hết lượt đổi (`skips_left = 0`), `400` khi buổi không hỗ trợ.
 - `status` chỉ có 4 giá trị:
 
 | `status` | Web hiển thị |
@@ -100,13 +103,31 @@ Base URL: `http://localhost:8000`. **Bật CORS** cho web.
 - Vừa sai → giữ khái niệm đó. Vừa đúng → sang khái niệm chưa hỏi.
 - Low-confidence (`not_enough_data`): dưới 3 câu đã trả lời, **hoặc** ≥3 câu có `answer_ms < 3000`.
 - `/report`: câu bị báo không tính điểm, ghi log.
-- `/skip`: cùng khái niệm, cùng mức, đưa câu cũ vào `history`.
+- `/skip`: cùng khái niệm, cùng mức, đưa câu cũ vào `history`. **Tối đa 2 lần mỗi lượt** (`rules.MAX_SKIPS`); mỗi câu gửi xuống có `skips_left`, web hiện "Đổi câu khác (còn n)", hết thì khoá nút. `/report` **không** trừ lượt đổi (là đường báo lỗi). Mỗi lần đổi ghi trace `kind = "skip"`.
+
+## 4b. Đo chỗ yếu qua nhiều lượt (thêm 18/9)
+
+- Web tạo **mã học viên ngẫu nhiên** một lần (`localStorage["solo-arena-learner"]`, 8–64 ký tự `A-Za-z0-9-`) và gửi `learner_id` khi `/session/start`. Không gửi → lượt độc lập như cũ.
+- Sai định dạng → **400**. Không có endpoint liệt kê học viên; hồ sơ lưu ở `codebase/data/progress.json` (**không commit**).
+- Mỗi `/answer` cộng dồn theo khái niệm, **trừ** câu có `answer_ms < 3000` (đoán mò) và câu `timed_out = true` (hết giờ ở chế độ đấu). Câu bị `/skip`, `/report` không tính.
+- `status` của khái niệm (rule, không AI):
+
+| `status` | Khi nào | Web hiển thị |
+|---|---|---|
+| `chua_luyen` | 0 câu | "Chưa luyện" |
+| `chua_du_du_lieu` | 1–2 câu | "Chưa đủ dữ liệu" (không kết luận) |
+| `dang_yeu` | ≥ 3 câu và sai ≥ 2 trong 3 câu gần nhất | "Đang yếu" + nút "Ôn chỗ yếu ngay" |
+| `da_vung` | ≥ 3 câu và đúng ≥ 2 trong 3 câu gần nhất | "Đã vững" |
+
+- Lượt mới có hồ sơ: thứ tự khái niệm = đang yếu → chưa luyện/chưa đủ dữ liệu → đã vững (mỗi nhóm vẫn xáo). `focus_weak` liệt kê phần đang yếu để web báo "Lượt này ưu tiên ôn lại…".
+- **`focus_concept`** ("Luyện 3 câu phần này"): lượt chỉ **3 câu**, cả 3 về đúng khái niệm đó, mức vẫn đổi theo đúng/sai. AI hụt thì thử lại chính khái niệm đó (không có khái niệm khác để chuyển). `question.total = 3`.
+- **Màn "Ôn lại kiến thức"** (`/review`): các câu học viên đã sai (giữ 5 câu gần nhất) kèm đáp án đúng, giải thích, câu trích — đều là nội dung **đã qua validator + kiểm chéo** — cùng nội dung slide gốc. **Không gọi AI.**
 
 ## 5. Chạy thử
 
 ```bash
 .\.venv\Scripts\python.exe -m uvicorn codebase.api.main:app --reload --port 8000   # rồi mở http://localhost:8000/docs
-.\.venv\Scripts\python.exe -m codebase.api.test_api                               # 25 test rule + API, dùng AI giả
+.\.venv\Scripts\python.exe -m codebase.api.test_api                               # 41 test rule + API + tiến độ, dùng AI giả
 ```
 
 ## 6. Môi trường

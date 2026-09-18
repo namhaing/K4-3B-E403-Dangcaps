@@ -4,7 +4,7 @@
   "lecture_title": "Day 1 — AI & LLM Foundation",
   "level_guide": {
     "1": "Nhận biết: hỏi định nghĩa hoặc sự kiện được nêu thẳng trên slide.",
-    "2": "Phân biệt: so sánh 2 khái niệm gần nhau, hoặc chọn phát biểu đúng/sai về khái niệm.",
+    "2": "Phân biệt: so sánh 2 khái niệm gần nhau, hoặc chọn phát biểu đúng giữa các phát biểu dễ nhầm. Không trả lời được chỉ nhờ nhớ định nghĩa (không hỏi dạng 'mô tả → gọi tên').",
     "3": "Áp dụng: đưa một tình huống thực tế mới, học viên phải dùng khái niệm để chọn cách hiểu hoặc cách làm đúng."
   },
   "concepts": [

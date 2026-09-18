@@ -25,3 +25,7 @@ eval/slides/
 eval/chatlog/
 *.pdf
 **/__pycache__/
+codebase/data/progress.json
+
+# Ảnh chụp có nội dung slide (data pack) không đưa vào repo
+docs/anh/*slide*.png

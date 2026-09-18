@@ -23,10 +23,10 @@ GOOD = {
 }
 
 
-def check(name, change, expect_error):
+def check(name, change, expect_error, level=2):
     q = copy.deepcopy(GOOD)
     change(q)
-    errors = validate(q, concept=CONCEPT, level=2, pages=PAGES)
+    errors = validate(q, concept=CONCEPT, level=level, pages=PAGES)
     passed = (expect_error in " ".join(errors)) if expect_error else not errors
     print(f"{'PASS' if passed else 'FAIL'}  {name:45s} -> {errors or 'hợp lệ'}")
     return passed
@@ -52,6 +52,12 @@ CASES = [
     ("Không báo nhầm: 'X và Y đều không…' là nội dung thật", lambda q: q["options"].__setitem__(3, "Cả temperature và top_p đều không ảnh hưởng đến cách chọn từ."), None),
     ("Lựa chọn 'Tất cả đều đúng.'", lambda q: q["options"].__setitem__(3, "Tất cả đều đúng."), "lựa chọn gộp"),
     ("Không báo nhầm: chữ 'A' đầu câu không phải tiền tố", lambda q: q["options"].__setitem__(3, "AI chỉ xử lý văn bản"), None),
+    ("Mức 2 hỏi 'được gọi là gì' (case T-G53)", lambda q: q.update(question="Mô hình rút ra quy luật từ ví dụ chứ không viết luật tay, cách làm này được gọi là gì?"), "gọi tên"),
+    ("Mức 2 khoác tình huống, hỏi 'loại AI nào' (G04)", lambda q: q.update(question="Một nhóm cần lọc email rác. Họ nên chọn loại AI nào?"), "gọi tên"),
+    ("Mức 2 có 4 lựa chọn chỉ là tên (L4-01)", lambda q: q.update(question="Cách làm nào rút ra quy luật từ ví dụ thay vì viết luật?", options=["Machine Learning", "Deep Learning", "Generative AI", "LLM"]), "gọi tên"),
+    ("Không báo nhầm: 'phát biểu nào đúng' ở mức 2", lambda q: q.update(question="So sánh Machine Learning với lập trình truyền thống, phát biểu nào đúng?"), None),
+    ("Không báo nhầm: mức 3 được hỏi 'loại AI nào'", lambda q: q.update(level=3, question="Một nhóm cần lọc email rác. Họ nên chọn loại AI nào?"), None, 3),
+    ("Không báo nhầm: mức 1 được hỏi 'khái niệm nào'", lambda q: q.update(level=1, question="Khái niệm nào rút ra quy luật từ ví dụ thay vì viết luật?"), None, 1),
 ]
 
 if __name__ == "__main__":
