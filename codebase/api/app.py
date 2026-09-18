@@ -7,6 +7,7 @@ Mở http://localhost:8000/docs để bấm thử từng endpoint.
 Session lưu trong RAM: tắt server là mất. Đủ cho lát cắt (mỗi lượt độc lập, non-goal 4).
 """
 import json
+import random
 import time
 import uuid
 from datetime import datetime
@@ -15,6 +16,7 @@ from typing import Callable, Literal
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from codebase.ai import generate_question, load_concepts, load_pages
@@ -22,6 +24,7 @@ from codebase.ai import generate_question, load_concepts, load_pages
 from . import rules
 
 TRACE_DIR = Path(__file__).resolve().parents[2] / "eval" / "traces"
+WEB_DIR = Path(__file__).resolve().parents[1] / "web"
 MAX_CONCEPT_TRIES = 3  # AI fail ở khái niệm này thì thử tối đa 3 khái niệm khác trước khi báo lỗi
 
 
@@ -48,8 +51,8 @@ class ReportReq(BaseModel):
 
 
 def create_app(generate: Callable = generate_question, pages: dict | None = None, concepts: dict | None = None,
-               trace: bool = True) -> FastAPI:
-    """generate có thể thay bằng hàm giả khi test rule (xem test_api.py)."""
+               trace: bool = True, shuffle: bool = True) -> FastAPI:
+    """generate có thể thay bằng hàm giả khi test rule (xem test_api.py). shuffle=False để test có thứ tự cố định."""
     pages = pages if pages is not None else load_pages()
     concepts = concepts or load_concepts()
     names = {c["concept_id"]: c["name"] for c in concepts["concepts"]}
@@ -95,10 +98,10 @@ def create_app(generate: Callable = generate_question, pages: dict | None = None
         status = "ok"
         for _ in range(MAX_CONCEPT_TRIES):
             if concept_id is None:
-                concept_id = rules.pick_concept(order, answered(s), s["excluded"])
+                concept_id = rules.pick_concept(s["order"], answered(s), s["excluded"])
             if concept_id is None:
                 break
-            history = [{"question": q["question"]} for q in s["questions"]]
+            history = [{"question": q["question"], "concept_id": q["concept_id"], "page": q["page"]} for q in s["questions"]]
             start = time.perf_counter()
             r = generate(concept_id, level, pages, history, concepts)
             log("generate", {"session_id": s["id"], "concept_id": concept_id, "level": level,
@@ -130,7 +133,10 @@ def create_app(generate: Callable = generate_question, pages: dict | None = None
     def start(req: StartReq):
         if req.lecture != concepts["lecture"]:
             raise HTTPException(400, f"Chỉ hỗ trợ buổi {concepts['lecture']}")
-        s = {"id": uuid.uuid4().hex[:12], "level": rules.START_LEVEL, "questions": [], "excluded": set(), "current": None}
+        # Xáo thứ tự khái niệm mỗi lượt: trước đây mọi lượt đều bắt đầu ở trang 3, 29 trang slide chỉ dùng tới 7 (log 18/9)
+        s_order = random.sample(order, len(order)) if shuffle else list(order)
+        s = {"id": uuid.uuid4().hex[:12], "level": rules.START_LEVEL, "questions": [], "excluded": set(), "current": None,
+             "order": s_order}
         sessions[s["id"]] = s
         q, status = new_question(s, None, s["level"])
         return {"session_id": s["id"], "question": public(s, q) if q else None, "status": status}
@@ -188,6 +194,10 @@ def create_app(generate: Callable = generate_question, pages: dict | None = None
             "evidence_quote": t["evidence_quote"] if t else None,
             "status": "ok",
         }
+
+    # Web của Hiền: mở http://localhost:8000/app/ (cùng máy chủ nên không lo CORS)
+    if WEB_DIR.exists():
+        app.mount("/app", StaticFiles(directory=WEB_DIR, html=True), name="web")
 
     return app
 

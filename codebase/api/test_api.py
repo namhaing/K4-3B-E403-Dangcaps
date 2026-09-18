@@ -35,7 +35,7 @@ def fake_generate(concept_id, level, pages, history, concepts):
 
 def client():
     FAIL.clear()
-    return TestClient(create_app(generate=fake_generate, pages=PAGES, concepts=CONCEPTS, trace=False))
+    return TestClient(create_app(generate=fake_generate, pages=PAGES, concepts=CONCEPTS, trace=False, shuffle=False))
 
 
 def play(c, choices, ms=5000):
@@ -66,6 +66,10 @@ A = [{"concept_id": "a", "correct": False}]
 check("khái niệm: vừa sai → giữ khái niệm", rules.pick_concept(["a", "b"], A, set()) == "a")
 check("khái niệm: vừa đúng → khái niệm chưa hỏi", rules.pick_concept(["a", "b"], [{"concept_id": "a", "correct": True}], set()) == "b")
 check("khái niệm: bỏ khái niệm đã bị loại", rules.pick_concept(["a", "b"], [], {"a"}) == "b")
+AA = [{"concept_id": "a", "correct": False}, {"concept_id": "a", "correct": False}]
+check("khái niệm: sai 2 lần liên tiếp → chuyển khái niệm (hết kẹt)", rules.pick_concept(["a", "b"], AA, set()) == "b")
+check("hỏi hết rồi thì không quay lại ngay khái niệm vừa sai 2 lần",
+      rules.pick_concept(["a", "b"], [{"concept_id": "b", "correct": False}] + AA, set()) == "b")
 check("② dưới 3 câu → chưa đủ dữ liệu", rules.is_low_confidence([{"answer_ms": 9000}] * 2))
 check("② 3 câu trả lời < 3 giây → chưa đủ dữ liệu", rules.is_low_confidence([{"answer_ms": 900}] * 3 + [{"answer_ms": 9000}] * 2))
 check("② 5 câu bình thường → đủ dữ liệu", not rules.is_low_confidence([{"answer_ms": 9000}] * 5))
@@ -78,7 +82,7 @@ check("không gửi đáp án xuống web", all(k not in out[0]["question"] for 
 levels = [o["next_question"]["level"] for o in out[1:-1]]
 check("mức đổi theo đúng/sai: 2→3→2→1→2", levels == [3, 2, 1, 2], levels)
 concepts_seen = [o["next_question"]["concept_name"] for o in out[1:-1]]
-check("sai thì câu sau giữ khái niệm", concepts_seen[1] == concepts_seen[0] and concepts_seen[2] == concepts_seen[1], concepts_seen)
+check("sai 1 lần giữ khái niệm, sai lần 2 thì chuyển", concepts_seen[1] == concepts_seen[0] and concepts_seen[2] != concepts_seen[1], concepts_seen)
 res = c.get(f"/session/{sid}/result").json()
 check("kết quả: đủ 5 câu, có chủ đề cần ôn kèm trang", res["status"] == "ok" and len(res["items"]) == 5 and res["review_concept"] and res["page"], res)
 
@@ -102,6 +106,12 @@ check("câu bị skip/report không tính vào số câu", rp["question"]["index
 old = c.post("/answer", json={"session_id": sid, "question_id": q["question_id"], "choice": 0})
 check("trả lời câu cũ đã bị thay → 409", old.status_code == 409, old.status_code)
 
+cs = TestClient(create_app(generate=fake_generate, pages=PAGES, concepts=CONCEPTS, trace=False, shuffle=True))
+firsts = {cs.post("/session/start", json={"lecture": "D01"}).json()["question"]["concept_name"] for _ in range(30)}
+check("xáo thứ tự: 30 lượt không cùng bắt đầu ở 1 khái niệm", len(firsts) >= 3, firsts)
+sid, out = play(c, [1, 1, 1, 1, 1])
+seen = [out[0]["question"]["concept_name"]] + [o["next_question"]["concept_name"] for o in out[1:-1]]
+check("sai cả 5 câu → không kẹt 1 khái niệm", len(set(seen)) >= 2, seen)
 check("③ xem lượt của người khác (id lạ) → 404", c.get("/session/khong-ton-tai/result").status_code == 404)
 check("buổi không hỗ trợ → 400", c.post("/session/start", json={"lecture": "D09"}).status_code == 400)
 

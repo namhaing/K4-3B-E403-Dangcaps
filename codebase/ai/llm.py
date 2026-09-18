@@ -18,18 +18,19 @@ load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 PROVIDER = os.getenv("LLM_PROVIDER", "openai").lower()
 MODEL = os.getenv("LLM_MODEL", {"openai": "gpt-4o-mini", "gemini": "gemini-2.0-flash"}.get(PROVIDER, "mock"))
-TEMPERATURE = 0.7  # đủ đa dạng để "Cho tôi câu khác" ra câu mới; validator chặn phần bịa
+TEMPERATURE = 0.5  # sinh câu: đủ đa dạng cho "Cho tôi câu khác"; hạ từ 0.7 sau case "AI chính" (18/9)
 
 
-def call_json(system: str, user: str) -> dict:
+def call_json(system: str, user: str, temperature: float | None = None) -> dict:
     """Gửi prompt, bắt model trả JSON, parse thành dict. Lỗi mạng/parse -> raise để generator xử lý."""
+    temp = TEMPERATURE if temperature is None else temperature
     if PROVIDER == "openai":
         from openai import OpenAI
 
         client = OpenAI(api_key=os.getenv("LLM_API_KEY"), timeout=30)
         resp = client.chat.completions.create(
             model=MODEL,
-            temperature=TEMPERATURE,
+            temperature=temp,
             response_format={"type": "json_object"},
             messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
         )
@@ -42,12 +43,14 @@ def call_json(system: str, user: str) -> dict:
         model = genai.GenerativeModel(MODEL, system_instruction=system)
         resp = model.generate_content(
             user,
-            generation_config={"response_mime_type": "application/json", "temperature": TEMPERATURE},
+            generation_config={"response_mime_type": "application/json", "temperature": temp},
             request_options={"timeout": 30},
         )
         return json.loads(resp.text)
 
     if PROVIDER == "mock":
+        if "<verify>" in user:  # kiểm chéo giả: mock luôn đặt đáp án ở lựa chọn 0
+            return {"dap_an_dung": [0], "de_ro_nghia": True, "ly_do": "[MOCK]"}
         return _mock(user)
 
     raise ValueError(f"LLM_PROVIDER không hợp lệ: {PROVIDER}")

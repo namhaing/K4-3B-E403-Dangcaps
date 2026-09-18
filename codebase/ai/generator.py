@@ -3,14 +3,15 @@
 Rule (API của D) đã chọn khái niệm + mức. Hàm này chỉ làm 1 việc:
 sinh 1 câu trắc nghiệm bám đúng trang slide của khái niệm đó, và KHÔNG trả câu nào chưa qua validator.
 
-Luồng:  kiểm input -> gọi LLM -> validator -> (fail) gọi lại 1 lần kèm lý do -> (fail tiếp) no_evidence
+Luồng:  kiểm input -> gọi LLM -> validator (code) -> kiểm chéo (AI giải lại, không biết đáp án)
+        -> (fail) gọi lại 1 lần kèm lý do -> (fail tiếp) no_evidence
 """
 import json
 import time
 from pathlib import Path
 
 from . import llm
-from .prompts import SYSTEM, build_user
+from .prompts import SYSTEM, VERIFY_SYSTEM, build_user, build_verify
 from .validator import validate
 
 DATA = Path(__file__).resolve().parents[1] / "data"
@@ -53,6 +54,9 @@ def generate_question(concept_id: str, level: int, pages: dict, history: list, c
 
     level_desc = concepts["level_guide"][str(level)]
     asked = [h["question"] for h in history if h.get("question")]
+    # Khái niệm có nhiều trang: gợi ý AI dùng trang chưa hỏi trong lượt (để không hỏi mãi 1 trang)
+    used = {int(h["page"]) for h in history if h.get("concept_id") == concept_id and h.get("page")}
+    fresh = [p for p in concept["pages"] if p not in used and len(pages.get(str(p), "")) >= 50]
     feedback = ""
     reason = "validation_failed"
     start = time.perf_counter()
@@ -60,7 +64,7 @@ def generate_question(concept_id: str, level: int, pages: dict, history: list, c
     for _ in range(MAX_ATTEMPTS):
         meta["attempts"] += 1
         try:
-            q = llm.call_json(SYSTEM, build_user(concept, level, level_desc, pages, asked, feedback))
+            q = llm.call_json(SYSTEM, build_user(concept, level, level_desc, pages, asked, feedback, fresh if used else []))
         except Exception as e:  # mạng, timeout, thiếu key, JSON hỏng -> không crash, coi như 1 lần fail
             meta["errors"].append([f"llm_error: {type(e).__name__}: {e}"[:300]])
             reason = "llm_error"
@@ -68,6 +72,8 @@ def generate_question(concept_id: str, level: int, pages: dict, history: list, c
         reason = "validation_failed"
 
         errors = validate(q, concept=concept, level=level, pages=pages)
+        if not errors:
+            errors = cross_check(q, concept, pages, meta)
         if not errors:
             meta["latency_ms"] = int((time.perf_counter() - start) * 1000)
             q = {k: q[k] for k in ("concept_id", "level", "page", "evidence_quote", "question", "options", "answer", "explanation")}
@@ -79,3 +85,21 @@ def generate_question(concept_id: str, level: int, pages: dict, history: list, c
 
     meta["latency_ms"] = int((time.perf_counter() - start) * 1000)
     return {"status": "no_evidence", "reason": reason, "meta": meta}
+
+
+def cross_check(q: dict, concept: dict, pages: dict, meta: dict) -> list[str]:
+    """Kiểm chéo nghĩa: AI giải lại câu hỏi mà KHÔNG biết đáp án.
+    Đạt khi đề rõ nghĩa VÀ đúng một lựa chọn đúng, trùng với answer.
+    Bắt lỗi validator (code) không bắt được: 2 đáp án đúng (case G02), đáp án vô nghĩa (case "AI chính", 18/9)."""
+    try:
+        v = llm.call_json(VERIFY_SYSTEM, build_verify(q, concept, pages), temperature=0)
+    except Exception as e:  # không kiểm được thì KHÔNG đưa câu cho học viên
+        return [f"kiểm chéo lỗi: {type(e).__name__}"]
+    meta.setdefault("verify", []).append(v)
+    right = sorted({int(i) for i in v.get("dap_an_dung", []) if str(i).lstrip("-").isdigit()})
+    errors = []
+    if not v.get("de_ro_nghia", False):
+        errors.append(f"kiểm chéo: đề không rõ nghĩa ({v.get('ly_do', '')})")
+    if right != [q["answer"]]:
+        errors.append(f"kiểm chéo: theo slide các lựa chọn đúng là {right}, không khớp đáp án {q['answer']} ({v.get('ly_do', '')})")
+    return errors
