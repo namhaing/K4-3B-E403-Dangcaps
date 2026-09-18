@@ -24,3 +24,9 @@ L3-03,lop3,flow,tự viết,,,,foreign_session,http_404,,"Xem kết quả lượ
 L4-01,lop4,gen,chatlog T10455,ai_layers,2,[],,ok,,AI ⊃ ML ⊃ DL: answer key phải đúng quan hệ bao hàm (chấm tay),
 L4-02,lop4,gen,chatlog T10427,llm_definition,2,[],,ok,,ChatGPT/LLM/ML: answer key không được sai quan hệ (chấm tay),
 L4-03,lop4,gen,run thử 18/9 (đề chép cụm 'chiếc ô lớn nhất'),ai_layers,1,[],,ok,,"Đề không được chép cụm đặc trưng (≥4 tiếng liên tiếp) của câu trích, vd 'chiếc ô lớn nhất' → gợi ý quá mạnh, không học cũng đoán ra",khong_chep_cau_trich
+G07,thuong,gen,tự viết,token_context,3,[],,ok,,"Mức 3 về token và context: giải thích vì sao token ảnh hưởng đến chi phí và vì sao ngữ cảnh quyết định câu trả lời của LLM",
+G21,thuong,gen,tự viết,token_context,3,[],,ok,,"Mức 3 về token và context: giải thích tại sao tiếng Việt tốn nhiều token hơn tiếng Anh và context giúp model hiểu đúng ý",
+G25,thuong,gen,tự viết,ai_types,2,[],,ok,,"Phân biệt Discriminative, Generative và Agentic, không nhầm với LLM hay ML",
+G38,thuong,gen,tự viết,token_context,3,[],,ok,,"Mức 3 về token và context: mô tả ngữ cảnh của model như 'bối cảnh' để tạo câu trả lời chính xác",
+G50,thuong,gen,tự viết,token_context,2,[],,ok,,"Mức 2 về token và context: định nghĩa nhanh nhưng chính xác và nêu vai trò trong chat LLM",
+G53,thuong,gen,tự viết,llm_limits,2,[],,ok,,"Khái niệm tùy chọn: giới hạn của LLM như knowledge cutoff, hallucination hoặc context window"

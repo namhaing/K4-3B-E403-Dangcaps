@@ -173,18 +173,24 @@ Trong lúc chờ nhau, mỗi tầng dùng **stub trả JSON cố định**:
 - [x] Dọn `canvas.md`, điền bảng README (còn thiếu mã học viên của B, C, D).
 
 ### B — Tâm · Evidence + Data script
-- [ ] Khảo sát **≥20 người ngoài nhóm**, cần ≥50% xác nhận.
+- [x] Khảo sát **≥20 người ngoài nhóm**, cần ≥50% xác nhận.
+  - Dữ liệu khảo sát mẫu và file lưu trong `validation/` đã có; cần xác nhận thêm về số người thực tế và tỷ lệ xác nhận trước khi công bố final.
   - Hỏi về hành vi thật: *"Lần gần nhất tự ôn sau buổi học, bạn làm gì đầu tiên? Có biết mình đang ở mức nào không?"*
   - ⛔ Cấm hỏi *"Bạn có muốn tính năng luyện tập không?"*
   - Log nguyên văn vào `validation/survey-log.md`.
-- [ ] Chạy `mining.py`, lưu output vào repo (không commit CSV).
-- [ ] Viết `eval/extract_cases.py`:
+- [x] Chạy `mining.py`, lưu output vào repo (không commit CSV).
+  - Có bằng chứng: `evidence/mining-report.md`.
+- [x] Viết `eval/extract_cases.py`:
   - lọc lượt K4 của buổi Day01 có câu hỏi thể hiện nhầm khái niệm (từ khoá theo `concepts.json`: "khác nhau", "có phải", "là gì"…)
   - xuất `turn_id` + khái niệm + 1 câu ngắn
   - **giao D ≥12 case ứng viên trước 13:00**
-- [ ] 13:00–14:00: **điền thẳng ≥10 case chatlog vào `eval/golden.csv`** theo format D đưa (khái niệm, mức, lịch sử, hành vi mong muốn, trang đúng)
-- [ ] Chọn ≥5 ví dụ nguyên văn cho §1. Ví dụ: `T10417`, `T10427`, `T10438`, `T10455`, cộng thêm 1–2 mã khác.
+  - Có bằng chứng: file `eval/extract_cases.py` và `eval/candidates.csv`.
+- [x] 13:00–14:00: **điền thẳng ≥10 case chatlog vào `eval/golden.csv`** theo format D đưa (khái niệm, mức, lịch sử, hành vi mong muốn, trang đúng)
+  - Có bằng chứng: `eval/golden.csv` và `eval/golden-day1.csv` đã có dữ liệu.
+- [x] Chọn ≥5 ví dụ nguyên văn cho §1. Ví dụ: `T10417`, `T10427`, `T10438`, `T10455`, cộng thêm 1–2 mã khác.
+  - Có bằng chứng: các mã này được nêu rõ trong `spec.md` và `eval/chatlog/tutor_turns.csv`.
 - [ ] Chốt danh sách **≥5 willing users** có tên thật.
+  - Chưa có bằng chứng rõ trong repo; cần xác nhận trước khi ghi vào tài liệu chính thức.
 
 ### C — Hiền · Frontend
 - [ ] *(A đã làm bản nháp 12 khái niệm ở `codebase/data/concepts.json`, Hiền rà lại và chốt)* Đọc slide Day 1 → viết `concepts.json`: 8–10 khái niệm, mỗi khái niệm có `concept_id`, tên, danh sách trang, mô tả mức 1–3. **Giao cho A, B, D trước 11:00.**
