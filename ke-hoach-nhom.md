@@ -167,7 +167,8 @@ Trong lúc chờ nhau, mỗi tầng dùng **stub trả JSON cố định**:
   - Chạy lại `try_generate --all --level 2`: **12/12 qua validator**, 11/12 qua ngay lần đầu.
   - Ghi §9 Changelog: validator thêm kiểm lựa chọn gộp — lý do case G04 (2 đáp án đúng).
 - [ ] **Giao hàm chạy thật cho D trước 14:00.** *(hàm đã chạy AI thật, chờ push + Duy nối vào API)*
-- [ ] 15:00 chạy `run_eval.py` lượt 1. **Đọc từng case fail** và viết `eval/run-1.md`: bảng %, danh sách fail, nguyên nhân dự đoán. Giữ nguyên số thật, kể cả khi số xấu.
+- [x] ~~15:00~~ **12:25 chạy `run_eval.py` lượt 1** (25 case, `gpt-4o-mini`). Tự động: 18/18 ra câu có trích dẫn khớp · ①②③ 9/9 đúng · lộ đáp án 1/18 · chép cụm câu trích 5/18. **Chấm tay NHÁP (Claude, chờ Nam/Duy duyệt):** answer key 16/18 (89%, hụt bar dự kiến 90%) · đúng khái niệm 18/18 · đúng mức 13/18 (72%). Phân tích nháp đã có ở cuối `eval/run-1.md`. *(18/9)*
+- [ ] **Nam + Duy duyệt từng dòng chấm tay** trong `eval/results/run-1.csv`, đổi `nguoi_cham` thành tên mình, chạy `python -m eval.run_eval --summarize run-1`; Nam sửa phần phân tích bằng lời của mình.
 - [ ] 15:30 quay video 30 giây cùng C. **Nộp CP3.**
 - [x] Dọn `canvas.md`, điền bảng README (còn thiếu mã học viên của B, C, D).
 

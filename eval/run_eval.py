@@ -175,8 +175,13 @@ def summarize(label: str, rows: list[dict], meta: str):
     fails = [r for r in rows if str(r.get("hanh_vi_dung")).upper() not in ("TRUE", "Y", "1")]
     lines += ["", "## Case fail — lỗi validator ghi lại", ""]
     lines += [f"- **{r['case_id']}**: {r.get('status')} {r.get('reason', '')} — `{str(r.get('errors', ''))[:300]}`" for r in fails] or ["- (không có)"]
-    lines += ["", "## Phân tích nguyên nhân (Nam viết sau khi đọc từng case fail)", "", "- ...", ""]
-    (EVAL / f"{label}.md").write_text("\n".join(lines), encoding="utf-8")
+    # Giữ nguyên phần phân tích Nam đã viết tay nếu file đã có (chạy --summarize nhiều lần không mất)
+    head = "## Phân tích nguyên nhân (Nam viết sau khi đọc từng case fail)"
+    md = EVAL / f"{label}.md"
+    old = md.read_text(encoding="utf-8") if md.exists() else ""
+    analysis = old.split(head, 1)[1].strip("\n") if head in old else "- ..."
+    lines += ["", head, "", analysis, ""]
+    md.write_text("\n".join(lines), encoding="utf-8")
     start = lines.index("## Theo chiều chất lượng")
     print("\n".join(lines[start + 2:start + 4 + len(dims)]))
     print(f"\n→ {EVAL / (label + '.md')}")
