@@ -16,3 +16,9 @@ __pycache__/
 # CSV của nhóm trong eval/ được commit (chặn *.csv ở trên là cho data pack)
 !eval/*.csv
 !eval/results/*.csv
+
+# Data pack KHÔNG được lên repo public (slide, chatlog) — mỗi người giữ bản riêng trên máy
+eval/slides/
+eval/chatlog/
+*.pdf
+**/__pycache__/
