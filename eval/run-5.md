@@ -64,7 +64,7 @@ Tính lại từ `run-5.csv` lúc 20:56 18/09 (đã gồm cột chấm tay).
 
 ## Phân tích nguyên nhân (Nam viết sau khi đọc từng case fail)
 
-> Lượt đo **trọn bộ 31 case trên bản hiện tại** (prompt luật 11 + validator chặn mức 2 dạng gọi tên + kiểm chéo), chạy 20:46 18/9. Chấm tay: Claude chấm nháp theo rubric, **chờ Nam/Duy duyệt** (cột `nguoi_cham`).
+> Lượt đo **trọn bộ 31 case trên bản hiện tại** (prompt luật 11 + validator chặn mức 2 dạng gọi tên + kiểm chéo), chạy 20:46 18/9. Chấm tay: Claude chấm nháp theo rubric, **Duy (21 câu) và Nam (1 câu) đã duyệt**, giữ nguyên toàn bộ điểm (cột `nguoi_cham`).
 
 **Đạt toàn bộ: 27/31 case (87%).** Mọi chiều đạt quality bar đã khoá (spec §7): ra câu 22/24 (92%) · khái niệm 22/22 · answer key 21/22 (95%) · lộ đáp án 1/22 (5%) · mức khó 22/22 · ①③ 6/6 · ② 3/3.
 

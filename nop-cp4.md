@@ -42,6 +42,6 @@ Chi tiết: `eval/run-5.md` · từng case: `eval/results/run-5.csv` · lịch s
 
 - **G05 sai đáp án mà AI kiểm chéo cho qua** — kiểm chéo dùng cùng model nên có thể sai giống bước ra đề; chưa thử model khác.
 - 3 case khác chưa đạt: G07, G09 không ra được câu; L4-03 lộ đáp án.
-- Chấm tay run-5 chưa được Nam/Duy duyệt; chưa có người ngoài nhóm chấm lại 5 case.
+- Chưa có người ngoài nhóm chấm lại 5 case để kiểm rubric (chấm tay run-5: Claude chấm nháp, Duy và Nam đã duyệt).
 - Chưa chạy bộ 60 case (gồm Day 2); chưa user test với người ngoài nhóm; §3 giải pháp tương tự còn trống.
 - Chế độ đấu: đối thủ, rating, bảng xếp hạng là mô phỏng; hồ sơ người chơi còn khởi tạo số liệu mẫu.
