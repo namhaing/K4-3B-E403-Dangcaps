@@ -105,8 +105,8 @@ Base URL: `http://localhost:8000`. **Bật CORS** cho web.
 ## 5. Chạy thử
 
 ```bash
-uvicorn codebase.api.main:app --reload --port 8000   # rồi mở http://localhost:8000/docs
-python -m codebase.api.test_api                       # 25 test rule + API, dùng AI giả
+.\.venv\Scripts\python.exe -m uvicorn codebase.api.main:app --reload --port 8000   # rồi mở http://localhost:8000/docs
+.\.venv\Scripts\python.exe -m codebase.api.test_api                               # 25 test rule + API, dùng AI giả
 ```
 
 ## 6. Môi trường
@@ -117,4 +117,9 @@ LLM_PROVIDER=openai | gemini | mock
 LLM_MODEL=...
 LLM_API_KEY=...
 ```
-Cài thư viện: `pip install -r codebase/ai/requirements.txt -r codebase/api/requirements.txt`
+Cài thư viện vào môi trường riêng:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r codebase/ai/requirements.txt -r codebase/api/requirements.txt
+```

@@ -9,9 +9,13 @@ Mỗi người tự chạy script này trên máy mình.
 """
 import argparse
 import json
+import sys
 from pathlib import Path
 
-import fitz  # pymupdf
+import pymupdf as fitz
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_PDF = ROOT / "data" / "vlearn-pack" / "slides" / "d1-slide-hackathon.pdf"

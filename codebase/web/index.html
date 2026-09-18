@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="VLearn Solo Arena — luyện tập thích ứng, bám sát nội dung bài học.">
+  <title>VLearn Solo Arena</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="vlearn-header">
+      <div class="vlearn-nav-shell">
+        <a class="vlearn-brand" href="./" aria-label="VLearn — về trang chủ">
+          <span class="vlearn-symbol" aria-hidden="true"><i></i><b></b></span>
+          <span class="vlearn-wordmark"><strong>V</strong>Learn</span>
+        </a>
+
+        <nav class="main-nav" aria-label="Điều hướng chính">
+          <a href="#" class="nav-item">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5v9a1.5 1.5 0 0 1-1.5 1.5H15v-7H9v7H4.5A1.5 1.5 0 0 1 3 19.5z"/></svg>
+            <span>Trang chủ</span>
+          </a>
+          <a href="#" class="nav-item">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4.5h5.5A2.5 2.5 0 0 1 12 7v13a3 3 0 0 0-3-3H4zM20 4.5h-5.5A2.5 2.5 0 0 0 12 7v13a3 3 0 0 1 3-3h5z"/></svg>
+            <span>Khóa học</span>
+          </a>
+          <a href="#" class="nav-item">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 2.5-2.5 2 2L16 7l1.5 1.5L20 6l1.5 1.5L19 10l2 2-2.5 2.5L14 10l-4 4 1.5 1.5L9 18l-1.5-1.5L5 19l-2-2 2.5-2.5L4 13l2.5-2.5L8 12l4-4z"/></svg>
+            <span>Luyện tập</span>
+          </a>
+          <a href="#" class="nav-item">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6M10 3v6l-5.5 9.5A1.7 1.7 0 0 0 6 21h12a1.7 1.7 0 0 0 1.5-2.5L14 9V3M7.5 15h9"/></svg>
+            <span>Lab</span><em class="nav-badge">Mới</em>
+          </a>
+          <a href="./" class="nav-item active" id="solo-nav" aria-current="page">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 9.8 8.2 4 9l4.2 4-1 5.8L12 16l4.8 2.8-1-5.8L20 9l-5.8-.8z"/></svg>
+            <span>Solo Arena</span><em class="nav-badge">Mới</em>
+          </a>
+          <a href="#ranking" class="nav-item" id="ranking-nav">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21v-7H4v7M14 21V9h-4v12M20 21V3h-4v18M3 21h18"/></svg>
+            <span>BXH</span>
+          </a>
+        </nav>
+
+        <div class="header-tools">
+          <div class="language-switch" aria-label="Ngôn ngữ"><span>EN</span><strong>VI</strong></div>
+          <div class="connection" id="connection" role="status" aria-live="polite">
+            <span class="connection-dot" aria-hidden="true"></span>
+            <span class="connection-text" id="connection-label">Đang kiểm tra</span>
+          </div>
+          <span class="user-avatar" aria-label="Tài khoản học viên">T</span>
+        </div>
+      </div>
+    </header>
+
+    <main id="app" class="app" tabindex="-1"></main>
+
+    <footer class="site-footer">
+      <p>Câu hỏi được tạo từ slide Day 1 và kiểm tra nguồn trước khi hiển thị.</p>
+      <button class="text-button" id="api-settings" type="button">Thiết lập kết nối</button>
+    </footer>
+  </div>
+
+  <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
+
+  <dialog class="dialog" id="report-dialog" aria-labelledby="report-title">
+    <form method="dialog" id="report-form">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">Giúp câu hỏi tốt hơn</p>
+          <h2 id="report-title">Bạn thấy vấn đề gì?</h2>
+        </div>
+        <button class="icon-button" value="cancel" aria-label="Đóng" type="submit">×</button>
+      </div>
+
+      <fieldset class="report-options">
+        <legend class="sr-only">Chọn lý do báo câu hỏi</legend>
+        <label>
+          <input type="radio" name="reason" value="wrong_answer" checked>
+          <span><strong>Đáp án chưa đúng</strong><small>Có nhiều đáp án đúng hoặc đáp án được chọn chưa hợp lý.</small></span>
+        </label>
+        <label>
+          <input type="radio" name="reason" value="unclear">
+          <span><strong>Câu hỏi khó hiểu</strong><small>Cách diễn đạt hoặc lựa chọn gây nhầm lẫn.</small></span>
+        </label>
+        <label>
+          <input type="radio" name="reason" value="not_in_slide">
+          <span><strong>Không có trong slide</strong><small>Nội dung dường như vượt ngoài bài học.</small></span>
+        </label>
+      </fieldset>
+
+      <div class="dialog-actions">
+        <button class="button button-secondary" value="cancel" type="submit">Quay lại</button>
+        <button class="button button-danger" id="submit-report" value="default" type="submit">Gửi báo cáo</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="dialog dialog-compact" id="settings-dialog" aria-labelledby="settings-title">
+    <form method="dialog" id="settings-form">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">Kết nối backend</p>
+          <h2 id="settings-title">Địa chỉ API</h2>
+        </div>
+        <button class="icon-button" value="cancel" aria-label="Đóng" type="submit">×</button>
+      </div>
+      <label class="field-label" for="api-url">Base URL</label>
+      <input class="text-field" id="api-url" name="api_url" type="url" placeholder="http://localhost:8000" required>
+      <p class="field-help">Mặc định: <code>http://localhost:8000</code>. Thiết lập được lưu trên trình duyệt này.</p>
+      <div class="dialog-actions">
+        <button class="button button-secondary" value="cancel" type="submit">Huỷ</button>
+        <button class="button button-primary" id="save-settings" value="default" type="submit">Lưu và kiểm tra</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
