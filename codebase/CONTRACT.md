@@ -75,6 +75,7 @@ Base URL: `http://localhost:8000`. **Bật CORS** cho web.
 | `POST /session/start` | `{"lecture": "D01", "learner_id": "uuid-cua-trinh-duyet", "focus_concept": "ai_types" (tuỳ chọn)}` | `{"session_id": "abc", "question": Question, "status": "ok", "focus_weak": ["Tên khái niệm đang yếu", …]}` |
 | `POST /answer` | `{"session_id", "question_id", "choice": 1, "answer_ms": 4200, "timed_out": false}` — chế độ đấu hết giờ chưa chọn: `choice = -1`, `timed_out = true` | `{"correct": false, "correct_choice": 0, "explanation", "page", "evidence_quote", "next_question": Question \| null, "done": false, "status"}` |
 | `POST /skip` | `{"session_id", "question_id"}` | `{"question": Question, "status"}` |
+| `POST /explain` | `{"session_id", "question_id"}` — **chỉ câu đã trả lời** (chưa trả lời → 409) | `{"status", "keywords": [{"term", "meaning"}], "distinction", "why_wrong" | null, "related": [{"concept_id", "concept_name", "pages"}]}` — "Hiểu sâu hơn", **bản thử cho demo**, ngoài bộ đo; mỗi câu gọi AI một lần |
 | `POST /report` | `{"session_id", "question_id", "reason": "wrong_answer" \| "unclear" \| "not_in_slide"}` | `{"question": Question, "status": "reported"}` |
 | `GET /session/{id}/result` | — | `{"items": [{"concept_name", "level", "correct"}], "review_concept", "page", "evidence_quote", "status"}` |
 | `GET /health` | — | `{"ok": true, "concepts": 12, "pages": 29}` |

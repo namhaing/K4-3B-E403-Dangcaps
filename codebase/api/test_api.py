@@ -286,5 +286,31 @@ check("sinh sẵn: sau 'Cho tôi câu khác' vẫn đúng luật", play_prefetch
 check("sinh sẵn: câu sinh sẵn thiếu căn cứ → đổi khái niệm như cũ", play_prefetch([0, 0], fail={"b"})[0] == play_plain([0, 0], fail={"b"}))
 FAIL.clear()
 
+# ---------- "Hiểu sâu hơn" (bản thử cho demo) ----------
+explain_calls = []
+
+
+def fake_explain(q, choice, concept, pages):
+    explain_calls.append(q["question_id"])
+    return {"status": "ok", "keywords": [{"term": "t", "meaning": "m"}], "distinction": "d",
+            "why_wrong": None if choice == q["answer"] else "w"}
+
+
+ce = TestClient(create_app(generate=fake_generate, explain=fake_explain, pages=PAGES, concepts=CONCEPTS, trace=False,
+                           shuffle=False, progress_path=None))
+FAIL.clear()
+r = ce.post("/session/start", json={"lecture": "D01"}).json()
+sid, q = r["session_id"], r["question"]
+body = {"session_id": sid, "question_id": q["question_id"]}
+check("hiểu sâu hơn: chưa trả lời → 409 (không lộ đáp án trước khi nộp)", ce.post("/explain", json=body).status_code == 409)
+ce.post("/answer", json={**body, "choice": 1, "answer_ms": 5000})
+e1 = ce.post("/explain", json=body).json()
+e2 = ce.post("/explain", json=body).json()
+check("hiểu sâu hơn: sau khi trả lời có từ khoá + phân biệt + khái niệm liền kề (không gồm chính nó)",
+      e1["status"] == "ok" and e1["keywords"] and e1["distinction"] and [x["concept_id"] for x in e1["related"]] == ["b"], e1)
+check("hiểu sâu hơn: chọn sai → có 'vì sao chưa đúng'", e1["why_wrong"] == "w", e1)
+check("hiểu sâu hơn: bấm lại không gọi AI lần 2", explain_calls == ["q1"] and e2 == e1, explain_calls)
+check("hiểu sâu hơn: câu không có trong lượt → 404", ce.post("/explain", json={"session_id": sid, "question_id": "q99"}).status_code == 404)
+
 print(f"\n{sum(RESULTS)}/{len(RESULTS)} test đạt")
 sys.exit(0 if all(RESULTS) else 1)

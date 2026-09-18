@@ -58,7 +58,7 @@ http://localhost:5173/?api=http://127.0.0.1:8000
 - Bắt đầu lượt luyện Day 1.
 - Chọn và nộp đáp án; đo `answer_ms` từ lúc câu được hiển thị.
 - Hiện đúng/sai, giải thích, trang và câu trích sau khi nộp.
-- Đổi câu cùng chủ đề/mức qua `/skip`.
+- Luyện thường: đổi câu cùng chủ đề/mức qua `/skip`; chế độ đấu không hiển thị chức năng đổi câu.
 - Báo câu sai với ba lý do qua `/report`.
 - Thông báo khi API tự đổi chủ đề vì thiếu căn cứ.
 - Màn `no_evidence`, `not_enough_data`, lỗi kết nối và kết quả cuối lượt.

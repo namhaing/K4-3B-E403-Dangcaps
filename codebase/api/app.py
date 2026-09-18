@@ -21,7 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from codebase.ai import generate_question, load_concepts, load_pages
+from codebase.ai import explain_question, generate_question, load_concepts, load_pages
 
 from . import rules
 from .progress import ProgressStore, valid_learner
@@ -59,6 +59,11 @@ class SkipReq(BaseModel):
     question_id: str
 
 
+class ExplainReq(BaseModel):
+    session_id: str
+    question_id: str
+
+
 class ReportReq(BaseModel):
     session_id: str
     question_id: str
@@ -67,7 +72,8 @@ class ReportReq(BaseModel):
 
 def create_app(generate: Callable = generate_question, pages: dict | None = None, concepts: dict | None = None,
                trace: bool = True, shuffle: bool = True, progress_path: Path | None = PROGRESS_FILE,
-               slide_pdf: Path | None = SLIDE_PDF, prefetch: bool = False) -> FastAPI:
+               slide_pdf: Path | None = SLIDE_PDF, prefetch: bool = False,
+               explain: Callable = explain_question) -> FastAPI:
     """generate có thể thay bằng hàm giả khi test rule (xem test_api.py). shuffle=False để test có thứ tự cố định.
     prefetch=True (main.py bật): trong lúc học viên đọc câu hiện tại, sinh sẵn câu tiếp theo cho CẢ 2 nhánh đúng/sai
     → /answer trả gần như ngay. Sinh 1 câu mất ~7 s (gồm kiểm chéo + sinh lại), học viên nghĩ thường lâu hơn thế."""
@@ -258,6 +264,27 @@ def create_app(generate: Callable = generate_question, pages: dict | None = None
         log("skip", {"session_id": s["id"], "concept_id": q["concept_id"], "level": q["level"], "question": q["question"]})
         nq, status = new_question(s, q["concept_id"], q["level"])
         return {"question": public(s, nq) if nq else None, "status": status}
+
+    @app.post("/explain")
+    def explain_answered(req: ExplainReq):
+        """"Hiểu sâu hơn" — BẢN THỬ cho demo (19/9), ngoài bộ đo: từ khoá + điểm cần phân biệt (AI, theo slide)
+        + khái niệm liền kề theo thứ tự slide (rule). Chỉ cho câu ĐÃ trả lời → không lộ đáp án trước khi nộp."""
+        s = get_session(req.session_id)
+        q = next((x for x in s["questions"] if x["question_id"] == req.question_id), None)
+        if q is None:
+            raise HTTPException(404, "Không có câu này trong lượt")
+        if q["state"] != "answered":
+            raise HTTPException(409, "Chỉ xem sau khi đã trả lời câu này")
+        if "explain" not in q:   # mỗi câu chỉ gọi AI một lần; bấm lại dùng bản đã có
+            concept = next(c for c in concepts["concepts"] if c["concept_id"] == q["concept_id"])
+            start = time.perf_counter()
+            q["explain"] = explain(q, q.get("choice", -1), concept, pages)
+            log("explain", {"session_id": s["id"], "question_id": q["question_id"],
+                            "api_ms": int((time.perf_counter() - start) * 1000), "result": q["explain"]})
+        i = order.index(q["concept_id"])
+        related = [{"concept_id": c["concept_id"], "concept_name": c["name"], "pages": c["pages"]}
+                   for c in concepts["concepts"][max(0, i - 1):i + 2] if c["concept_id"] != q["concept_id"]]
+        return {**q["explain"], "related": related}
 
     @app.post("/report")
     def report(req: ReportReq):

@@ -4,10 +4,10 @@ const DEFAULT_API_URL = "http://localhost:8000";
 const LETTERS = ["A", "B", "C", "D"];
 const LEVEL_NAMES = { 1: "Nhận biết", 2: "Phân biệt", 3: "Áp dụng" };
 const DEMO_TOTAL = 5;
-// Chế độ đấu kiểu Kahoot: hiện ĐỀ trước (ẩn đáp án, đếm 3-2-1) → hiện đáp án + 10 s để trả lời →
+// Chế độ đấu kiểu Kahoot: hiện ĐỀ trước (ẩn đáp án, đếm 4-3-2-1; 3 → 4 s sau góp ý dùng thử "thời gian đọc nhanh quá") → hiện đáp án + 10 s để trả lời →
 // cả hai đã chọn (bạn + đối thủ mô phỏng) thì hiện kết quả vòng, đếm ngược 4 s rồi tự sang câu (không có nút).
 // Đúng: 500–1000 điểm theo tốc độ trong 10 s. Sai / hết giờ: 0. Đối thủ mô phỏng: đúng-sai và tốc độ theo mẫu cố định.
-const BATTLE_READ_SECONDS = 3;
+const BATTLE_READ_SECONDS = 4;
 const BATTLE_ANSWER_SECONDS = 10;
 const BATTLE_NEXT_SECONDS = 4;
 const OPPONENT_PATTERN = [true, false, true, true, false];
@@ -143,6 +143,7 @@ const state = {
   opponentRevealed: false,
   roundTimer: null,
   autoNextLeft: 0,
+  explain: {},             // "Hiểu sâu hơn": {"<session>:<question_id>": {open, loading, data, error}}
   matchSearchId: 0,
   profile: loadProfile(),
   battleRated: false,
@@ -828,7 +829,7 @@ function renderQuestion() {
         <div class="question-actions">
           <div class="minor-actions">
             ${state.feedback ? "" : `
-              ${q.skips_left === 0
+              ${state.battleMode ? "" : q.skips_left === 0
                 ? `<button class="text-button" id="skip-button" type="button" disabled title="Mỗi lượt được đổi tối đa 2 câu">Hết lượt đổi câu</button>`
                 : `<button class="text-button" id="skip-button" type="button">Đổi câu khác${Number.isInteger(q.skips_left) ? ` (còn ${q.skips_left})` : ""}</button>`}
               <button class="text-button danger" id="report-button" type="button">Báo câu sai</button>`}
@@ -846,12 +847,13 @@ function renderQuestion() {
 
   if (state.feedback) {
     document.querySelector("#continue-button")?.addEventListener("click", continueAfterFeedback);   // chế độ đấu: không có nút, tự sang câu
+    bindExplain();
   } else {
     document.querySelectorAll(".option").forEach((button) => {
       button.addEventListener("click", () => selectChoice(Number(button.dataset.choice)));
     });
     document.querySelector("#answer-button")?.addEventListener("click", () => submitAnswer());
-    document.querySelector("#skip-button").addEventListener("click", skipQuestion);
+    document.querySelector("#skip-button")?.addEventListener("click", skipQuestion);
     document.querySelector("#report-button").addEventListener("click", () => reportDialog.showModal());
     if (state.battleMode) startBattleTimer();
   }
@@ -1066,7 +1068,118 @@ function feedbackTemplate() {
     <aside class="source-card">
       <div class="source-heading"><strong>Nguồn trong bài học</strong><span>Slide ${escapeHtml(feedback.page)}${state.demoMode ? "" : ` · <a class="slide-open-inline" href="${state.apiUrl}/slide/${encodeURIComponent(feedback.page)}.png" target="_blank" rel="noopener">Xem slide ↗</a>`}</span></div>
       <blockquote>“${escapeHtml(feedback.evidence_quote)}”</blockquote>
-    </aside>`;
+    </aside>
+    ${state.battleMode || state.demoMode ? "" : explainTemplate()}`;
+}
+
+// ---------- "Hiểu sâu hơn" — BẢN THỬ cho demo (19/9): mở theo nhu cầu sau khi đã trả lời ----------
+// Từ khoá + điểm cần phân biệt do AI tổng hợp từ slide (chưa qua kiểm tra như câu hỏi → ghi rõ "bản thử");
+// kiến thức liên quan là khái niệm liền kề theo thứ tự slide (rule). Không có ở chế độ đấu (màn kết quả vòng chỉ 4 s).
+function explainKey() {
+  return `${state.sessionId}:${state.question.question_id}`;
+}
+
+function explainTemplate() {
+  const ex = state.explain[explainKey()] || {};
+  return `
+    <section class="explain-card ${ex.open ? "is-open" : ""}" id="explain-card">
+      <button class="explain-toggle" id="explain-toggle" type="button" aria-expanded="${Boolean(ex.open)}" aria-controls="explain-content">
+        <span class="explain-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M3.5 5.5A2.5 2.5 0 0 1 6 3h4a2 2 0 0 1 2 2v15a2.8 2.8 0 0 0-2.5-1.5h-6zM20.5 5.5A2.5 2.5 0 0 0 18 3h-4a2 2 0 0 0-2 2v15a2.8 2.8 0 0 1 2.5-1.5h6z"/></svg>
+        </span>
+        <span class="explain-label">
+          <small>Kiến thức mở rộng</small>
+          <strong>Hiểu sâu hơn về câu này</strong>
+          <span>Từ khóa, điểm dễ nhầm và phần nên học tiếp</span>
+        </span>
+        <span class="explain-chevron" aria-hidden="true"></span>
+      </button>
+      ${!ex.open ? "" : `
+        <div class="explain-content" id="explain-content">
+          ${ex.loading
+            ? `<p class="explain-status" aria-live="polite"><span class="explain-loader" aria-hidden="true"></span>AI đang tổng hợp từ slide…</p>`
+            : ex.error
+              ? `<p class="explain-status explain-error">Chưa tổng hợp được: ${escapeHtml(ex.error)}</p>`
+              : explainBodyTemplate(ex.data)}
+        </div>`}
+    </section>`;
+}
+
+function explainBodyTemplate(d) {
+  const keywords = d.keywords || [];
+  const related = d.related || [];
+  return `
+    <div class="explain-body" aria-live="polite">
+      ${keywords.length ? `
+        <section class="explain-section">
+          <div class="explain-section-heading"><span>01</span><h4>Từ khóa chính</h4></div>
+          <dl class="explain-keywords">${keywords.map((k) => `
+            <div><dt>${escapeHtml(k.term)}</dt><dd>${escapeHtml(k.meaning)}</dd></div>`).join("")}
+          </dl>
+        </section>` : ""}
+      ${d.why_wrong || d.distinction ? `
+        <section class="explain-section">
+          <div class="explain-section-heading"><span>02</span><h4>Điểm cần phân biệt</h4></div>
+          ${d.why_wrong ? `<p class="explain-why"><strong>Vì sao lựa chọn của bạn chưa đúng:</strong> ${escapeHtml(d.why_wrong)}</p>` : ""}
+          ${d.distinction ? `<p class="explain-distinction">${escapeHtml(d.distinction)}</p>` : ""}
+        </section>` : ""}
+      ${related.length ? `
+        <section class="explain-section">
+          <div class="explain-section-heading"><span>03</span><h4>Kiến thức liên quan</h4></div>
+          <ul class="explain-related">${related.map((r) => `
+            <li>
+              <strong>${escapeHtml(r.concept_name)}</strong>
+              <span class="explain-links">
+                <a class="explain-slide-link" href="${state.apiUrl}/slide/${encodeURIComponent(r.pages[0])}.png" target="_blank" rel="noopener">Xem slide ${escapeHtml(r.pages[0])} ↗</a>
+                <button class="explain-drill" type="button" data-explain-drill="${escapeHtml(r.concept_id)}">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M22 12h-3"/></svg>
+                  Luyện 3 câu
+                </button>
+              </span>
+            </li>`).join("")}
+          </ul>
+        </section>` : ""}
+      <p class="explain-note"><span aria-hidden="true">AI</span> Nội dung được tổng hợp từ slide và đang ở bản thử nghiệm.</p>
+    </div>`;
+}
+
+// Vẽ lại đúng khung này (không vẽ lại cả màn → trang không nhảy lên đầu).
+function renderExplain() {
+  const card = document.querySelector("#explain-card");
+  if (!card) return;
+  card.outerHTML = explainTemplate();
+  bindExplain();
+}
+
+function bindExplain() {
+  document.querySelector("#explain-toggle")?.addEventListener("click", toggleExplain);
+  document.querySelectorAll("[data-explain-drill]").forEach((button) => {
+    button.addEventListener("click", () => startSession(false, button.dataset.explainDrill));
+  });
+}
+
+async function toggleExplain() {
+  const key = explainKey();
+  const ex = state.explain[key] || (state.explain[key] = {});
+  ex.open = !ex.open;
+  if (ex.open && !ex.data && !ex.loading) {
+    ex.loading = true;
+    ex.error = null;
+    renderExplain();
+    try {
+      const payload = await request("/explain", {
+        method: "POST",
+        body: JSON.stringify({ session_id: state.sessionId, question_id: state.question.question_id }),
+      });
+      if (payload.status === "ok") ex.data = payload;
+      else ex.error = "AI chưa trả lời được, bấm lại để thử lần nữa.";
+    } catch (error) {
+      ex.error = error.message;
+    }
+    ex.loading = false;
+    if (ex.error) ex.open = true;
+  }
+  if (explainKey() === key) renderExplain();   // học viên đã sang câu khác thì thôi
 }
 
 function selectChoice(index) {
@@ -1182,7 +1295,7 @@ async function continueAfterFeedback() {
 }
 
 async function skipQuestion() {
-  if (state.busy) return;
+  if (state.battleMode || state.busy) return;
   setBusy(true);
   renderLoading("Đang đổi câu hỏi", "Giữ nguyên chủ đề và mức hiện tại nếu còn đủ căn cứ.");
   try {
@@ -1352,12 +1465,21 @@ function renderResult(result) {
   focusApp();
 }
 
+// "Sát nút" chỉ khi cách biệt < 500 = điểm tối thiểu của 1 câu đúng (đúng thêm 1 câu là lật kèo).
+// Trước đây thua cách xa vẫn ghi "Đối thủ thắng sát nút".
+const CLOSE_MARGIN = 500;
+
 function getBattleOutcome() {
-  return state.playerScore > state.opponentScore
-    ? { title: "Bạn chiến thắng!", label: "Thắng trận", className: "win" }
-    : state.playerScore < state.opponentScore
-      ? { title: "Đối thủ thắng sát nút", label: "Kết thúc trận", className: "loss" }
-      : { title: "Trận đấu hòa", label: "Ngang tài", className: "draw" };
+  const diff = Math.abs(state.playerScore - state.opponentScore);
+  const close = diff < CLOSE_MARGIN;
+  const margin = diff.toLocaleString("vi-VN");
+  if (state.playerScore > state.opponentScore) {
+    return { title: close ? "Bạn thắng sát nút!" : "Bạn chiến thắng!", label: `Hơn ${margin} điểm`, className: "win" };
+  }
+  if (state.playerScore < state.opponentScore) {
+    return { title: close ? "Đối thủ thắng sát nút" : "Đối thủ thắng trận này", label: `Kém ${margin} điểm`, className: "loss" };
+  }
+  return { title: "Trận đấu hòa", label: "Ngang tài", className: "draw" };
 }
 
 function battleResultTemplate(outcome) {

@@ -57,6 +57,9 @@ def call_json(system: str, user: str, temperature: float | None = None) -> dict:
     if PROVIDER == "mock":
         if "<verify>" in user:  # kiểm chéo giả: mock luôn đặt đáp án ở lựa chọn 0
             return {"dap_an_dung": [0], "de_ro_nghia": True, "ly_do": "[MOCK]"}
+        if "<explain>" in user:  # "Hiểu sâu hơn" giả
+            return {"keywords": [{"term": "[MOCK] thuật ngữ", "meaning": "giải thích một câu theo slide"}],
+                    "distinction": "[MOCK] khái niệm dễ nhầm và điểm khác nhau", "why_wrong": "[MOCK] vì sao lựa chọn này chưa đúng"}
         return _mock(user)
 
     raise ValueError(f"LLM_PROVIDER không hợp lệ: {PROVIDER}")
