@@ -1,4 +1,4 @@
-data/
+/data/
 *.csv
 .env
 01-*.md
@@ -8,3 +8,7 @@ data/
 tracks/
 examples/
 further-reading/
+
+# Nội dung slide trích từ data pack — mỗi người tự chạy codebase/ai/extract_pages.py
+codebase/data/pages.json
+__pycache__/
