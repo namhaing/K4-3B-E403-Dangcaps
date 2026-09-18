@@ -281,7 +281,7 @@ Trong lúc chờ nhau, mỗi tầng dùng **stub trả JSON cố định**:
   - ⚠️ 3 s đọc đề + 10 s trả lời chặt với câu mức 2–3 (84–100 chữ) → đo tỷ lệ hết giờ khi user test.
 - [x] **Chế độ đấu: bỏ nút Tạm dừng / Câu tiếp theo, tự sang câu sau 4 s (20:35, Claude làm, Nam duyệt)** — thử 5 vòng trên Edge: tự sang sau 3,9–4,0 s, 0 lỗi JS.
 - [ ] **Cần làm để có số nộp (trước CP4):** chạy lại toàn bộ golden set (run-3 chính thức) + chấm tay, rồi viết spec §7 theo run-3. Backlog CP6: `misconception_tags` / `wrong_option_rationales` vào trace.
-- [x] **(20:40, Claude viết, Nam duyệt) spec §7 viết lại bằng số thật run-1/run-2/run-4-muc2 + sửa dòng trạng thái, §1, §4/§4b, §6, §8.** Còn lại: khảo sát thật (Tâm); commit + push. — Ghi chú cũ: `spec.md` §7 vẫn là bản cũ của Tâm ("0/60 chạy, còn thiếu run_eval") → Nam/Duy viết lại theo run-1/run-2; khảo sát thật (Tâm); commit + push.
+- [x] **(20:40, Claude viết, Nam duyệt) spec §7 viết lại bằng số thật run-1/run-2/run-4-muc2 + sửa dòng trạng thái, §1, §4/§4b, §6, §8.** Còn lại: khảo sát thật (Tâm). ✅ Đã commit + push lên `anam` lúc 20:43 (commit 7f04500, 31 file; trước đó kiểm: không lộ key, .gitignore chặn đúng data pack, test 63/63 + 25/25; thư mục `eval/traces` bị chuyển nhầm sang `eval/fixtures/traces` lúc 20:39 → đã chuyển về). — Ghi chú cũ: `spec.md` §7 vẫn là bản cũ của Tâm ("0/60 chạy, còn thiếu run_eval") → Nam/Duy viết lại theo run-1/run-2; khảo sát thật (Tâm); commit + push.
 - [x] **Chốt quality bar** — **Nam chốt lúc 20:40** (spec §7 + §9), giữ nguyên ngưỡng Canvas; báo lại Duy. Bar:
   > Đạt khi ≥80% câu có trích dẫn khớp trang và đúng khái niệm · **≥90% answer key đúng** · ≤10% đề lộ đáp án · ≥70% câu đúng mức khó yêu cầu (người ngoài chấm) · 100% case ① và ③ xử lý đúng.
 - [ ] Viết `spec.md` §4:
