@@ -1,6 +1,9 @@
 /data/
+codebase/data/vlearn-pack/
 *.csv
 .env
+.venv/
+.run/
 01-*.md
 02-*.md
 03-*.md
