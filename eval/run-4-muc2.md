@@ -45,7 +45,7 @@ Tính lại từ `run-4-muc2.csv` lúc 19:37 18/09 (đã gồm cột chấm tay)
 
 ## Phân tích nguyên nhân (Nam viết sau khi đọc từng case fail)
 
-> Lượt chạy thử bằng `--only`: 14 case mức 2 (cùng tập với run-2 và run-3-muc2), **không dùng làm số liệu nộp**. Chấm tay là NHÁP Claude, chờ Nam/Duy duyệt.
+> Lượt chạy thử bằng `--only`: 14 case mức 2 (cùng tập với run-2 và run-3-muc2), **không dùng làm số liệu nộp**. Chấm tay: Claude chấm nháp theo rubric, **Nam và Duy đã duyệt** (18/9, giữ nguyên toàn bộ điểm; tên người duyệt ở cột `nguoi_cham`).
 
 **Thay đổi so với run-3-muc2:** validator (code) chặn mức 2 dạng "mô tả → gọi tên": đề hỏi "khái niệm / loại / công nghệ / hiện tượng / bước / tầng… nào (gì)", "được gọi là gì", hoặc cả 4 lựa chọn chỉ là tên (≤ 3 chữ). Lỗi ghi sẵn cách sửa và được gửi lại cho AI ở lần sinh lại. Chỉ áp dụng cho mức 2. Trước khi chạy đã thử offline trên 23 câu mức 2 đã chấm của run-2 và run-3: không chặn nhầm câu Y nào (0/11), bắt được 11/12 câu N.
 

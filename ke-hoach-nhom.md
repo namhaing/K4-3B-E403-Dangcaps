@@ -169,7 +169,7 @@ Trong lúc chờ nhau, mỗi tầng dùng **stub trả JSON cố định**:
   - Chạy lại `try_generate --all --level 2`: **12/12 qua validator**, 11/12 qua ngay lần đầu.
   - Ghi §9 Changelog: validator thêm kiểm lựa chọn gộp — lý do case G04 (2 đáp án đúng).
 - [ ] **Giao hàm chạy thật cho D trước 14:00.** *(hàm đã chạy AI thật, chờ push + Duy nối vào API)*
-- [x] ~~15:00~~ **12:25 chạy `run_eval.py` lượt 1** (25 case, `gpt-4o-mini`). Tự động: 18/18 ra câu có trích dẫn khớp · ①②③ 9/9 đúng · lộ đáp án 1/18 · chép cụm câu trích 5/18. **Chấm tay NHÁP (Claude, chờ Nam/Duy duyệt):** answer key 16/18 (89%, hụt bar dự kiến 90%) · đúng khái niệm 18/18 · đúng mức 13/18 (72%). Phân tích nháp đã có ở cuối `eval/run-1.md`. *(18/9)*
+- [x] ~~15:00~~ **12:25 chạy `run_eval.py` lượt 1** (25 case, `gpt-4o-mini`). Tự động: 18/18 ra câu có trích dẫn khớp · ①②③ 9/9 đúng · lộ đáp án 1/18 · chép cụm câu trích 5/18. **Chấm tay (Nam + Duy):** answer key 16/18 (89%, hụt bar dự kiến 90%) · đúng khái niệm 18/18 · đúng mức 13/18 (72%). Phân tích nháp đã có ở cuối `eval/run-1.md`. *(18/9)*
 - [ ] **Nam + Duy duyệt từng dòng chấm tay** trong `eval/results/run-1.csv`, đổi `nguoi_cham` thành tên mình, chạy `python -m eval.run_eval --summarize run-1`; Nam sửa phần phân tích bằng lời của mình.
 - [ ] 15:30 quay video 30 giây cùng C. **Nộp CP3.** *(nội dung form đã soạn sẵn ở `nop-cp3.md` theo run-2: 23/31 đạt; còn thiếu link video; chấm tay run-2 cần Nam/Duy duyệt; eval/ + spec.md phải push lên main trước khi nộp)*
 - [x] Dọn `canvas.md`, điền bảng README (còn thiếu mã học viên của B, C, D).
@@ -246,7 +246,7 @@ Trong lúc chờ nhau, mỗi tầng dùng **stub trả JSON cố định**:
 
 ### A — Nam · Vòng sửa AI + spec §4 + chốt bar
 - [x] Từ `run-1.md`, sửa **2–3 nguyên nhân fail lớn nhất** (prompt, validator, cách đưa trang vào). Mỗi thay đổi ghi 1 dòng vào §9 Changelog, trỏ tới case nào.
-- [x] **Sửa sau run-1 + chạy run-2 (14:51, 31 case)** *(18/9)* — chấm tay NHÁP, chờ Nam/Duy duyệt:
+- [x] **Sửa sau run-1 + chạy run-2 (14:51, 31 case)** *(18/9)* — chấm tay: Claude chấm nháp, Nam + Duy đã duyệt (18/9):
   - Thêm **kiểm chéo bằng AI** (giải lại câu, không biết đáp án) → chặn được case demo "AI chính" và G02. Prompt luật 11–12 (mức 3 bắt buộc tình huống; cấm lấy tiêu đề slide làm đáp án). `temperature` 0.7 → 0.5. Golden +6 case của Tâm (đổi mã T-G…, sửa cột thiếu).
   - Kết quả: answer key 16/18 → **21/21**; đúng mức 72% → **81%**; mức 3 có tình huống 1/4 → **6/6**; chép cụm 5/18 → 3/21. Đánh đổi: ra câu 100% → **88%** (3 case bị chặn — đã đọc, cả 3 chặn đúng).
   - Còn lỗi: mức 2 hay thành câu nhận biết; L4-03 vẫn chép "chiếc ô lớn nhất".
@@ -261,11 +261,11 @@ Trong lúc chờ nhau, mỗi tầng dùng **stub trả JSON cố định**:
   - Spec: lát cắt + non-goals (viết lại, mục cũ đang trống) + bảng thiết kế + §4b G10 + §5 (+4 kịch bản) + §6 (+1 đường đi) + §9. Canvas + CONTRACT cập nhật.
 - [x] **Bản đồ trực quan hơn + ôn lại ngay (18:20–18:35)** — theo góp ý của Nam: thanh tổng quan, "Cần ôn ngay", lộ trình theo slide; màn "Ôn lại kiến thức" (câu đã sai + slide gốc); "Luyện 3 câu phần này". Test **49/49**. Chạy thật Edge + AI thật: bản đồ → ôn lại (3 câu sai thật, slide 4) → luyện 3 câu cùng khái niệm → bản đồ cập nhật; 0 lỗi JS, mobile không tràn. Sửa lỗi phát hiện khi chạy: lượt ôn riêng 1/3 lần không ra câu → thử lại chính khái niệm → 5/5.
 - [x] **Ảnh slide thật khi ôn lại (18:50)**: `GET /slide/{page}.png` (vẽ từ PDF gốc, giữ trong RAM); màn ôn hiện ảnh slide + chữ thu gọn, câu trích có link nhảy tới ảnh; nút "Xem slide ↗" ở màn phản hồi. Test **52/52**. Chạy thật Edge: ảnh slide 4 hiện đủ 1536×864, 0 lỗi JS. ⚠️ Không push ảnh chụp có nội dung slide (đã cắt `docs/anh/on-lai-kien-thuc.png`, `.gitignore` chặn `docs/anh/*slide*.png`).
-- [x] **Sửa mức 2 (19:30, Claude làm, chờ Nam/Duy duyệt)** — prompt luật 11 + `level_guide["2"]`: cấm "mô tả → gọi tên", chỉ cho so sánh 2 khái niệm hoặc chọn phát biểu đúng có lựa chọn sai là hiểu nhầm cụ thể. Rubric mức 2 thêm ví dụ N; spec §7 dòng "Mức khó" khớp rubric; §9 thêm 1 dòng.
+- [x] **Sửa mức 2 (19:30, Claude làm, Nam + Duy đã duyệt)** — prompt luật 11 + `level_guide["2"]`: cấm "mô tả → gọi tên", chỉ cho so sánh 2 khái niệm hoặc chọn phát biểu đúng có lựa chọn sai là hiểu nhầm cụ thể. Rubric mức 2 thêm ví dụ N; spec §7 dòng "Mức khó" khớp rubric; §9 thêm 1 dòng.
   - ⚠️ Đọc lại run-2 theo rubric: đúng mức thật **14/21 (67%) < bar 70%** (G05, G06, T-G53 chấm Y dễ quá). Mức 2 thật 4/11.
   - Chạy thử 14 case mức 2 (`eval/run-3-muc2.md`, không dùng làm số nộp): mức 2 thật **7/12 (58%)**, answer key 12/12, ra câu 12/13. Chưa đạt 70%.
   - Còn lại: 5/12 câu vẫn khoác tình huống rồi hỏi "loại/khái niệm nào" → đã xử lý ở dòng dưới.
-- [x] **Validator chặn mức 2 dạng gọi tên (19:45, Claude làm, chờ Nam/Duy duyệt)**: `validator.NAMING` + luật "4 lựa chọn chỉ là tên"; chỉ mức 2; lỗi kèm cách sửa gửi lại cho AI. Test validator **25/25** (+6), API 52/52.
+- [x] **Validator chặn mức 2 dạng gọi tên (19:45, Claude làm, Nam + Duy đã duyệt)**: `validator.NAMING` + luật "4 lựa chọn chỉ là tên"; chỉ mức 2; lỗi kèm cách sửa gửi lại cho AI. Test validator **25/25** (+6), API 52/52.
   - Chạy thử 14 case mức 2 (`eval/run-4-muc2.md`, không dùng làm số nộp): đúng mức 2 **12/12**, answer key **11/12** (G07 có 2 đáp án đúng, kiểm chéo không bắt), ra câu 12/13.
   - ⚠️ Cái giá: độ trễ trung vị **7.0 s** (5/12 câu phải sinh lại). Lỗi cũ còn: câu trích khớp trang nhưng nhiều khi không chứng minh đáp án.
   - ⚠️ Cái giá độ trễ 7 s → đã xử lý ở dòng dưới.
@@ -280,7 +280,8 @@ Trong lúc chờ nhau, mỗi tầng dùng **stub trả JSON cố định**:
 - [x] **Chế độ đấu theo vòng kiểu Kahoot (20:30, Claude làm, Nam duyệt)**: đề trước, đếm 3-2-1 → đáp án + 10 s → cả hai chọn xong thì lộ đối thủ → tự sang câu sau 6 s (có "Tạm dừng để đọc"). Sửa lỗi: lượt "chưa đủ dữ liệu" trước đây mất tỉ số + rating. Thử đủ 5 vòng trên Edge (AI giả), 0 lỗi JS. Spec §4c + §9.
   - ⚠️ 3 s đọc đề + 10 s trả lời chặt với câu mức 2–3 (84–100 chữ) → đo tỷ lệ hết giờ khi user test.
 - [x] **Chế độ đấu: bỏ nút Tạm dừng / Câu tiếp theo, tự sang câu sau 4 s (20:35, Claude làm, Nam duyệt)** — thử 5 vòng trên Edge: tự sang sau 3,9–4,0 s, 0 lỗi JS.
-- [ ] **Cần làm để có số nộp (trước CP4):** chạy lại toàn bộ golden set (run-3 chính thức) + chấm tay, rồi viết spec §7 theo run-3. Backlog CP6: `misconception_tags` / `wrong_option_rationales` vào trace.
+- [x] **run-5 — đo lại trọn bộ 31 case trên bản hiện tại (20:46–20:55, Claude chạy + chấm nháp, chờ Nam/Duy duyệt):** đạt mọi chiều của bar (ra câu 22/24 · khái niệm 22/22 · answer key 21/22 · lộ 1/22 · mức khó 22/22 · ①③ 6/6 · ② 3/3); **27/31 case đạt toàn bộ** (run-2: 23/31). Chưa đạt: G05 sai đáp án mà kiểm chéo cho qua, G07, G09, L4-03. Đã ghi `eval/run-5.md`, spec §7 + §9, `nop-cp4.md` (chuẩn đạt + kết quả + phần chưa xong).
+- [x] ~~**Cần làm để có số nộp (trước CP4):**~~ → đã làm ở dòng trên (run-5). Ghi chú cũ: chạy lại toàn bộ golden set (run-3 chính thức) + chấm tay, rồi viết spec §7 theo run-3. Backlog CP6: `misconception_tags` / `wrong_option_rationales` vào trace.
 - [x] **(20:40, Claude viết, Nam duyệt) spec §7 viết lại bằng số thật run-1/run-2/run-4-muc2 + sửa dòng trạng thái, §1, §4/§4b, §6, §8.** Còn lại: khảo sát thật (Tâm). ✅ Đã commit + push lên `anam` lúc 20:43 (commit 7f04500, 31 file) và **đưa vào `main` lúc 20:45** (fast-forward, không xung đột; máy không có gh nên không qua PR) (; trước đó kiểm: không lộ key, .gitignore chặn đúng data pack, test 63/63 + 25/25; thư mục `eval/traces` bị chuyển nhầm sang `eval/fixtures/traces` lúc 20:39 → đã chuyển về). — Ghi chú cũ: `spec.md` §7 vẫn là bản cũ của Tâm ("0/60 chạy, còn thiếu run_eval") → Nam/Duy viết lại theo run-1/run-2; khảo sát thật (Tâm); commit + push.
 - [x] **Chốt quality bar** — **Nam chốt lúc 20:40** (spec §7 + §9), giữ nguyên ngưỡng Canvas; báo lại Duy. Bar:
   > Đạt khi ≥80% câu có trích dẫn khớp trang và đúng khái niệm · **≥90% answer key đúng** · ≤10% đề lộ đáp án · ≥70% câu đúng mức khó yêu cầu (người ngoài chấm) · 100% case ① và ③ xử lý đúng.

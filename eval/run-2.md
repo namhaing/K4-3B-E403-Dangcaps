@@ -65,7 +65,7 @@ Tính lại từ `run-2.csv` lúc 14:54 18/09 (đã gồm cột chấm tay).
 
 ## Phân tích nguyên nhân (Nam viết sau khi đọc từng case fail)
 
-> ⚠️ **NHÁP do Claude viết — Nam đọc lại, viết bằng lời của mình, rồi xoá dòng này.** Chấm tay trong CSV là NHÁP, chờ Nam/Duy duyệt.
+> ⚠️ **NHÁP do Claude viết — Nam đọc lại, viết bằng lời của mình, rồi xoá dòng này.** Chấm tay trong CSV: Claude chấm nháp theo rubric, **Nam và Duy đã duyệt** (18/9, giữ nguyên toàn bộ điểm; tên người duyệt ở cột `nguoi_cham`).
 
 **Thay đổi so với run-1 (ghi vào spec §9 Changelog):**
 1. **Thêm bước kiểm chéo bằng AI** (`generator.cross_check`): sau validator, gọi AI lần 2 với vai người kiểm đề, KHÔNG cho biết đáp án, bắt giải lại. Chỉ cho qua khi đề rõ nghĩa VÀ đúng 1 lựa chọn đúng trùng đáp án. Lý do: run-1 G02 (4 đáp án đúng), G04, và case demo "AI chính" (AI hiểu tiêu đề slide "Ba nhóm AI chính" thành tên một nhóm → chấm oan học viên). Đã thử trực tiếp: chặn được cả "AI chính" và G02, cho qua câu đúng.

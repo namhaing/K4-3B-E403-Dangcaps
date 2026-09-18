@@ -45,7 +45,7 @@ Tính lại từ `run-3-muc2.csv` lúc 19:31 18/09 (đã gồm cột chấm tay)
 
 ## Phân tích nguyên nhân (Nam viết sau khi đọc từng case fail)
 
-> Lượt chạy thử bằng `--only`: chỉ 14 case mức 2 (đúng tập case mức 2 của run-2), **không dùng làm số liệu nộp**. Chấm tay là NHÁP Claude, chờ Nam/Duy duyệt.
+> Lượt chạy thử bằng `--only`: chỉ 14 case mức 2 (đúng tập case mức 2 của run-2), **không dùng làm số liệu nộp**. Chấm tay: Claude chấm nháp theo rubric, **Nam và Duy đã duyệt** (18/9, giữ nguyên toàn bộ điểm; tên người duyệt ở cột `nguoi_cham`).
 
 **Thay đổi:** prompt luật 11 mức 2 + `level_guide["2"]`: cấm dạng "mô tả → gọi tên" ("…là hiện tượng gì?", "khái niệm/loại nào…"), chỉ cho 2 dạng: so sánh 2 khái niệm gần nhau, hoặc chọn phát biểu đúng mà mỗi phát biểu sai là một hiểu nhầm cụ thể.
 

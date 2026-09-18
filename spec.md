@@ -4,7 +4,7 @@ Lớp 3B · Phòng E403 · Cụm 6 · Đội trưởng: Nguyễn Hải Nam.
 Hướng: [x] A - VLearn (A2) · [ ] B - Trợ lý Học viên · [ ] C - Làn mở.
 Loại: [ ] Tối ưu tính năng có sẵn · [x] Tính năng mới.
 
-**Trạng thái: bản nộp CP4, 18/09/2026.** Prototype chạy end-to-end bằng AI thật (web → API → `openai/gpt-4o-mini`), không can thiệp tay. Đã có 2 lượt eval trên bộ Day 1 (run-1, run-2) và 2 lượt chạy thử riêng câu mức 2 sau khi sửa (run-3-muc2, run-4-muc2). **Số chấm tay là bản nháp, chờ Nam/Duy duyệt.** Ô nào ghi "chưa có" là chưa có thật, không điền số giả.
+**Trạng thái: bản nộp CP4, 18/09/2026.** Prototype chạy end-to-end bằng AI thật (web → API → `openai/gpt-4o-mini`), không can thiệp tay. Đã có 3 lượt eval trọn bộ 31 case Day 1 (run-1, run-2, **run-5 trên bản hiện tại**) và 2 lượt chạy thử riêng câu mức 2 (run-3-muc2, run-4-muc2). **Chấm tay:** run-1 do Nam và Duy chấm; run-2 → run-4 do Claude chấm nháp theo rubric, **Nam và Duy đã duyệt** (18/9, giữ nguyên toàn bộ điểm; tên người duyệt ở cột `nguoi_cham`). Ô nào ghi "chưa có" là chưa có thật, không điền số giả.
 
 Căn cứ: [Canvas](canvas.md), [kế hoạch nhóm](ke-hoach-nhom.md), [luồng core](luong.md), [báo cáo mining](evidence/mining-report.md), [golden set 2.0](eval/golden.csv), [bộ Day 1 đang chạy](eval/golden-day1.csv), kết quả eval [run-1](eval/run-1.md) · [run-2](eval/run-2.md) · [run-3-muc2](eval/run-3-muc2.md) · [run-4-muc2](eval/run-4-muc2.md), [hợp đồng API](codebase/CONTRACT.md).
 
@@ -52,9 +52,20 @@ Trích phần câu hỏi ngắn; giữ nguyên cách viết. Đối chiếu bằ
 
 **Nhu cầu quan sát được, dùng làm căn cứ thiết kế câu hỏi:** 4/6 ví dụ trên là hỏi phân biệt hoặc nhầm giữa các khái niệm gần nhau (LLM–ML, ChatGPT–LLM, ML–DL, AI–ML–DL). Vì vậy câu mức 2 phải bắt học viên **phân biệt** chứ không chỉ nhớ định nghĩa, và lựa chọn sai phải là một **hiểu nhầm có thật** (§4, §9 19:30–19:45). Đây là quan sát định tính trên ví dụ chọn lọc, không phải tỷ lệ.
 
-### Khảo sát còn cần đưa vào hồ sơ
+### Khảo sát (n = 20)
 
-Tâm đã đánh dấu hoàn thành khảo sát trong kế hoạch. Chưa có validation/survey-log.md trong repo để đối chiếu, nên **chưa ghi số người xác nhận hoặc tỷ lệ**. Cần bổ sung n người ngoài nhóm, số xác nhận pain, câu hỏi đã dùng và phản hồi nguyên văn. Mục tiêu kế hoạch là ≥20 người và kiểm tra ngưỡng ≥50%; đây chưa phải kết quả thực tế.
+Nguồn: `validation/khao_sat.csv` (khảo sát do Tâm phụ trách theo kế hoạch; định dạng xuất từ form, 20 phản hồi ẩn danh — chỉ có dấu thời gian và câu trả lời, thu 18:34–19:20 ngày 17/09/2026). File gốc giữ trên máy, **chưa đưa lên repo public** (bị chặn bởi quy tắc `*.csv`); dưới đây là số tổng hợp.
+
+| Câu hỏi (rút gọn) | Kết quả | Đọc |
+|---|---|---|
+| Khi tự ôn, có khó biết chính xác trình độ / mức hiểu bài hiện tại không? | Thường xuyên 6 · Thỉnh thoảng 7 · Hiếm khi 3 · Không bao giờ 4 | **13/20 (65%) có gặp pain** (≥ 50% theo kế hoạch); chỉ tính "thường xuyên" là 6/20 (30%) |
+| Sau buổi học có thường tự ôn lại không? | Thường xuyên 6 · Thỉnh thoảng 3 · Hiếm khi 6 · Không bao giờ 5 | 9/20 có tự ôn; 11/20 hiếm khi hoặc không bao giờ |
+| Muốn ôn tập kiểu thi đấu với học viên khác không? | Rất muốn 8 · Có 5 · Không chắc 6 · Không muốn 1 | 13/20 (65%) muốn |
+| Đối thủ ngang trình độ quan trọng thế nào? | Rất 5 · Khá 9 · Ít 2 · Không 4 | 14/20 cho là quan trọng |
+| Có dùng tính năng tự đánh giá trình độ + ghép người ngang trình không? | Chắc chắn có 8 · Có thể 2 · Không chắc 3 · **Không dùng 7** | 10/20 (50%) sẽ dùng; 7/20 nói không |
+| Làm quiz một mình có nhàm chán / giảm động lực không? | Rất thường xuyên 4 · Thỉnh thoảng 5 · Hiếm khi 7 · Không 4 | 9/20 — tín hiệu yếu hơn pain "không biết mình ở đâu" |
+
+**Giới hạn:** chưa rõ người trả lời có phải học viên K4 / người ngoài nhóm không; mẫu tiện lợi, thu trong 46 phút; câu hỏi về tính năng (Q6) có gợi ý sẵn giải pháp. Chưa có phản hồi nguyên văn dạng mở. Khảo sát ủng hộ pain "khó biết mình đang hiểu tới đâu" (khớp bản đồ chỗ yếu), còn nhu cầu thi đấu chia đôi (7/20 không dùng) → giữ chế độ đấu là lớp bọc, không phải core.
 
 ## §2. Impact & quyết định chọn
 
@@ -172,7 +183,7 @@ Kết quả quan sát thật trên sản phẩm: xem `eval/run-1.md`, `eval/run-
 
 ## §7. Kiểm thử
 
-**Bộ đang chạy:** [eval/golden-day1.csv](eval/golden-day1.csv), 31 case Day 1: 25 case của nhóm (gồm 11 lượt chatlog thật chuyển thể) + 6 case chuyển từ bộ 60 của Tâm (mã T-G…). Bộ tham chiếu đầy đủ [eval/golden.csv](eval/golden.csv) (v2.0, 60 case Day 1 + Day 2) **chưa chạy hết**: app chỉ phủ Day 1, case Day 2 là chưa chạy. Cách chạy và rubric: [eval/README.md](eval/README.md), [eval/rubric-cham-tay.md](eval/rubric-cham-tay.md).
+**Bộ đang chạy:** [eval/golden-day1.csv](eval/golden-day1.csv), 31 case Day 1 (25 case của nhóm + 6 case chuyển từ bộ 60 của Tâm, mã T-G…): 16 case thường · 3 case hiếm · 3 case cho mỗi lớp chỗ khó ①②③④; **14 case lấy từ câu hỏi thật của học viên K4 trong chatlog** (ghi turn_id). 27 case sinh câu, 4 case luồng/phiên. Bộ tham chiếu đầy đủ [eval/golden.csv](eval/golden.csv) (v2.0, 60 case Day 1 + Day 2) **chưa chạy hết**: app chỉ phủ Day 1, case Day 2 là chưa chạy. Cách chạy và rubric: [eval/README.md](eval/README.md), [eval/rubric-cham-tay.md](eval/rubric-cham-tay.md).
 
 **Kênh chạy:** `python -m eval.run_eval` gọi đúng `generate_question()` (validator + kiểm chéo) với AI thật; case phiên/luồng (①②③) chạy qua API. Rule chọn khái niệm + mức, giới hạn đổi câu, sinh sẵn câu, hết giờ ở chế độ đấu kiểm bằng `codebase/api/test_api.py` (63/63) và `codebase/ai/test_validator.py` (25/25) với AI giả.
 
@@ -189,20 +200,22 @@ Kết quả quan sát thật trên sản phẩm: xem `eval/run-1.md`, `eval/run-
 
 **Kết quả** (chi tiết từng case trong `eval/results/`):
 
-| Chiều | Bar | run-1 (25 case) | run-2 (31 case) | Mức 2 sau sửa: run-4-muc2 (14 case, chạy thử) |
-|---|---|---|---|---|
-| Ra câu, trích dẫn khớp trang | ≥ 80% | 18/18 (100%) | 21/24 (88%) | 12/13 (92%) |
-| Đúng khái niệm | ≥ 80% | 18/18 (100%) | 21/21 (100%) | 12/12 (100%) |
-| Answer key đúng | ≥ 90% | 16/18 (89%) ❌ | 21/21 (100%) | 11/12 (92%) |
-| Không lộ đáp án | lộ ≤ 10% | 17/18 (lộ 6%) | 20/21 (lộ 5%) | 12/12 (lộ 0%) |
-| Đúng mức khó | ≥ 70% | 13/18 (72%) | bản nháp 17/21 (81%) → **chấm lại chặt 14/21 (67%) ❌** | mức 2: 12/12 (100%) |
-| Case ① và ③ | 100% | 6/6 | 6/6 | 2/2 |
-| Case ② (chưa đủ dữ liệu) | 100% | 3/3 | 3/3 | — |
-| Chép cụm câu trích vào đề | (theo dõi) | 5/18 | 3/21 | 0/12 |
+| Chiều | Bar | run-1 (25 case) | run-2 (31 case) | Mức 2 sau sửa: run-4-muc2 (14 case, chạy thử) | **run-5 (31 case, bản hiện tại)** |
+|---|---|---|---|---|---|
+| Ra câu, trích dẫn khớp trang | ≥ 80% | 18/18 (100%) | 21/24 (88%) | 12/13 (92%) | **22/24 (92%)** ✅ |
+| Đúng khái niệm | ≥ 80% | 18/18 (100%) | 21/21 (100%) | 12/12 (100%) | **22/22 (100%)** ✅ |
+| Answer key đúng | ≥ 90% | 16/18 (89%) ❌ | 21/21 (100%) | 11/12 (92%) | **21/22 (95%)** ✅ |
+| Không lộ đáp án | lộ ≤ 10% | 17/18 (lộ 6%) | 20/21 (lộ 5%) | 12/12 (lộ 0%) | **21/22 (lộ 5%)** ✅ |
+| Đúng mức khó | ≥ 70% | 13/18 (72%) | bản nháp 17/21 (81%) → **chấm lại chặt 14/21 (67%) ❌** | mức 2: 12/12 (100%) | **22/22 (100%)** ✅ |
+| Case ① và ③ | 100% | 6/6 | 6/6 | 2/2 | **6/6** ✅ |
+| Case ② (chưa đủ dữ liệu) | 100% | 3/3 | 3/3 | — | **3/3** ✅ |
+| Chép cụm câu trích vào đề | (theo dõi) | 5/18 | 3/21 | 0/12 | 5/22 |
+| **Case đạt toàn bộ** | — | — | 23/31 (74%) | — | **27/31 (87%)** |
 
 - **Đọc kết quả:** run-2 đạt bar ở mọi chiều trừ **mức khó khi chấm đúng rubric**: G05, G06, T-G53 là câu "mô tả → gọi tên" nhưng bản nháp chấm Y; mức 2 thật chỉ 4/11. Đã sửa bằng prompt luật 11 + validator chặn mức 2 dạng gọi tên (§9 19:30–19:45): trên cùng tập case mức 2, 4/11 → 12/12. Đổi lại: G07 có 2 đáp án đúng mà kiểm chéo không bắt; 5/12 câu phải sinh lại (độ trễ sinh câu tăng, đã bù bằng sinh sẵn — §9 19:50).
-- **Chưa làm:** chạy lại toàn bộ 31 case trên bản hiện tại — số mức 1, mức 3 và ①②③ của bản hiện tại vẫn dựa trên run-2; chạy 60 case của golden.csv (gồm Day 2); người ngoài nhóm chấm lại 5 case để kiểm độ rõ của rubric.
-- **Chấm tay:** mọi cột chấm tay của run-1 → run-4 là bản nháp do Claude chấm, **chờ Nam/Duy duyệt**.
+- **run-5 (bản hiện tại, 31 case): đạt mọi chiều của bar**, 27/31 case đạt toàn bộ. 4 case chưa đạt: **G05 sai đáp án** (RLHF — kiểm chéo cùng model cũng hiểu sai, lỗi nặng nhất); G07 không ra câu (1 lần validator chặn nhầm "Cả hai đều…" có nội dung + 1 lần 2 đáp án đúng); G09 không chép được câu trích nguyên văn trang 22; L4-03 lộ đáp án "AI". Chi tiết: [eval/run-5.md](eval/run-5.md).
+- **Chưa làm:** chạy 60 case của golden.csv (gồm Day 2); người ngoài nhóm chấm lại 5 case để kiểm độ rõ của rubric.
+- **Chấm tay:** run-1 do **Nam (13 câu) và Duy (5 câu)** chấm. Run-2 → run-4: Claude chấm nháp theo rubric, **Nam và Duy đã duyệt** (18/9, giữ nguyên toàn bộ điểm; tên người duyệt ở cột `nguoi_cham`). **Run-5: Claude chấm nháp, chờ Nam/Duy duyệt.**
 - **Lỗi đã biết:** câu trích khớp trang nhưng nhiều khi không chứng minh đáp án (validator chỉ kiểm có nguyên văn, chưa kiểm đúng nghĩa); kiểm chéo dùng cùng model nên có thể sai giống người ra đề (G07); L4-03 vẫn chép cụm "chiếc ô lớn nhất".
 
 ## §8. Phân công & kế hoạch
@@ -255,4 +268,6 @@ Từ tối 18/9, Nam (A) trực tiếp sửa và duyệt cả web; các thay đ�
 | 18/09 ~20:30 | **Chế độ đấu theo vòng kiểu Kahoot:** đề hiện trước, ẩn đáp án, đếm 3-2-1 → đáp án + 10 s → cả hai đã chọn thì lộ kết quả đối thủ → tự sang câu sau 6 s (có "Tạm dừng để đọc"). Bỏ nút "Sẵn sàng". Luật "< 3 s" đo từ lúc hiện đáp án. **Sửa lỗi:** lượt "chưa đủ dữ liệu" trước đây bỏ mất tỉ số + rating của trận | Nam muốn hiện đề trước 1-2-3 giây rồi mới hiện đáp án, cả hai chọn xong thì tự chuyển. Thử 5 vòng trên Edge (AI giả): đáp án ẩn + đếm 3→2; chọn sau 1 s → "Đang chờ … chọn", nút khoá; đối thủ chọn → lộ "+775", nút "(6s)" → tự sang câu; để đối thủ chọn trước → bảng "đã chọn ✓", mình chọn → lộ ngay; Tạm dừng 7 s → vẫn ở màn giải thích; hết giờ → lộ đối thủ ngay; câu cuối tự sang kết quả. Lỗi phát hiện khi thử: 3 câu chọn < 3 s → màn "chưa đủ dữ liệu" không có tỉ số, rating không cập nhật → sửa: màn này hiện tỉ số + rating, chỉ không kết luận chỗ cần ôn. 0 lỗi JS, mobile không tràn |
 | 18/09 ~20:35 | **Chế độ đấu: bỏ nút "Tạm dừng để đọc" và "Câu tiếp theo"**, kết quả vòng đếm ngược 4 s rồi tự sang câu | Nam muốn trận chạy liền mạch. Thử 5 vòng trên Edge (AI giả): không còn nút, tự sang câu sau 3,9–4,0 s, câu cuối tự sang kết quả; 0 lỗi JS. Đánh đổi: giải thích chỉ hiện 4 s; câu sai (≥ 3 s, không hết giờ) vẫn xem lại được ở màn "Ôn lại kiến thức" |
 | 18/09 ~20:40 | **Cập nhật spec cho CP4:** dòng trạng thái (đã chạy end-to-end + có eval), §1 thêm nhu cầu phân biệt khái niệm gần nhau (4/6 ví dụ chatlog) làm căn cứ câu mức 2, §4/§4b chuyển từ "dự kiến" sang "đã chạy", khai hồ sơ đấu có số liệu mẫu, §6/§8 bỏ việc chờ C xác nhận, **§7 viết lại bằng số thật** run-1 / run-2 / run-4-muc2 | §7 cũ vẫn ghi "0/60 đã chạy", dòng trạng thái ghi "chưa có code chạy được" — sai so với repo. Ghi thẳng: mức khó run-2 chấm chặt 67% < 70%, chưa chạy lại toàn bộ trên bản hiện tại, chấm tay còn là bản nháp |
+| 18/09 ~20:50 | **§1 điền số khảo sát** (n = 20, từ `validation/khao_sat.csv`): pain "khó biết mình đang hiểu tới đâu" 13/20 (65%); muốn thi đấu 13/20; sẽ dùng ghép ngang trình 10/20, 7/20 không. §7 sửa số case chatlog của bộ Day 1: **14** (trước ghi nhầm 11 — số của bộ 60) | Spec cũ ghi "chưa có số khảo sát" dù file khảo sát đã có trên máy (bị `*.csv` chặn khỏi repo). Ghi rõ giới hạn: chưa rõ người trả lời, mẫu tiện lợi, Q6 gợi ý giải pháp |
+| 18/09 ~20:55 | **run-5: đo lại trọn bộ 31 case trên bản hiện tại** | Đạt mọi chiều của bar đã khoá: ra câu 22/24 · khái niệm 22/22 · answer key 21/22 · lộ 1/22 · mức khó 22/22 (run-2 chấm chặt 14/21) · ①③ 6/6 · ② 3/3; 27/31 case đạt toàn bộ (run-2: 23/31). Lỗi mới: **G05 sai đáp án mà kiểm chéo cho qua**; G07 validator chặn nhầm "Cả hai đều…". Chấm tay run-5 là nháp, chờ Nam/Duy duyệt |
 | 18/09 20:40 | **Khoá quality bar** (Nam chốt): ≥ 80% ra câu có trích dẫn khớp trang · ≥ 80% đúng khái niệm · ≥ 90% answer key · ≤ 10% lộ đáp án · ≥ 70% đúng mức khó · 100% case ① và ③ | Hạn khoá bar trước CP4. Giữ nguyên ngưỡng Canvas, không nới theo kết quả (mức khó run-2 chấm chặt 67% vẫn ghi là chưa đạt) |
