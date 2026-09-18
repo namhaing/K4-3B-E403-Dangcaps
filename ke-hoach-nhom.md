@@ -22,6 +22,7 @@
 - `canvas.md` còn 1 phiên bản. Dòng 5–6, non-goals và quality bar dự kiến đã khớp với kế hoạch này.
 - `luong.md` đã viết lại theo flow luyện 5 câu. Đã xoá `luong_app.md` và 2 file checklist cũ.
 - `SOLO-ARENA-HANDOFF.md` có ghi chú ở đầu file: phân công, bar và phạm vi trong đó đã cũ.
+- **14:00 — gỡ data pack khỏi repo public + xoá khỏi toàn bộ lịch sử git (force-push).** Commit `ff8a6b1` đã đưa `eval/slides/*.pdf`, `eval/chatlog/`, `__pycache__` lên GitHub. Đã xoá khỏi 17/17 commit, `.gitignore` chặn `eval/slides/`, `eval/chatlog/`, `*.pdf`; `eval/candidates.csv` rút trích đoạn còn ≤ 80 ký tự. **Mỗi người phải chạy `git fetch` + `git reset --hard origin/main`** (lưu thay đổi chưa commit trước). ⛔ Không đưa slide/chatlog vào repo nữa.
 
 **Còn phải làm**
 1. Pain mới có bằng chứng "tutor không làm", chưa có bằng chứng "học viên cần". **Khảo sát 20 người là bắt buộc.** Proxy "hỏi 1 lần" có thể là người đã hài lòng, nên ghi rõ giới hạn trong spec.
