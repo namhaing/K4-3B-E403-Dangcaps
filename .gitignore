@@ -19,6 +19,8 @@ __pycache__/
 # CSV của nhóm trong eval/ được commit (chặn *.csv ở trên là cho data pack)
 !eval/*.csv
 !eval/results/*.csv
+# Khảo sát ẩn danh (dấu thời gian + câu trả lời trắc nghiệm, không tên/email) — bằng chứng spec §1
+!validation/*.csv
 
 # Data pack KHÔNG được lên repo public (slide, chatlog) — mỗi người giữ bản riêng trên máy
 eval/slides/
